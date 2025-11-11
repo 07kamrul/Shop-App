@@ -1,20 +1,18 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../data/models/user_model.dart';
-import '../../data/repositories/auth_repository.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shop_management/data/models/user_model.dart';
+import '../../../core/services/auth_service.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository authRepository;
-
-  AuthBloc({required this.authRepository}) : super(AuthInitial()) {
+  AuthBloc() : super(AuthInitial()) {
     on<AuthSignUpRequested>(_onAuthSignUpRequested);
     on<AuthSignInRequested>(_onAuthSignInRequested);
     on<AuthSignOutRequested>(_onAuthSignOutRequested);
     on<AuthCheckRequested>(_onAuthCheckRequested);
-    on<AuthUpdateProfile>(_onAuthUpdateProfile);
   }
 
   void _onAuthSignUpRequested(
@@ -23,13 +21,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final user = await authRepository.signUp(
+      final response = await AuthService.register(
         email: event.email,
         password: event.password,
         name: event.name,
         shopName: event.shopName,
         phone: event.phone,
       );
+
+      // Handle both Map and User object responses
+      final User user = response is User
+          ? response as User
+          : User.fromJson(response as Map<String, dynamic>);
+
       emit(AuthAuthenticated(user: user));
     } catch (e) {
       emit(AuthError(error: e.toString()));
@@ -42,10 +46,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final user = await authRepository.signIn(
+      final response = await AuthService.login(
         email: event.email,
         password: event.password,
       );
+
+      // Handle both Map and User object responses
+      final User user = response is User
+          ? response as User
+          : User.fromJson(response as Map<String, dynamic>);
+
       emit(AuthAuthenticated(user: user));
     } catch (e) {
       emit(AuthError(error: e.toString()));
@@ -58,7 +68,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      await authRepository.signOut();
+      await AuthService.logout();
       emit(AuthUnauthenticated());
     } catch (e) {
       emit(AuthError(error: e.toString()));
@@ -71,33 +81,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final userStream = authRepository.currentUser;
-      await for (final user in userStream) {
-        if (user != null) {
+      final isLoggedIn = await AuthService.isLoggedIn();
+      if (isLoggedIn) {
+        final userData = await AuthService.getCurrentUser();
+        if (userData != null) {
+          // Handle both Map and User object responses
+          final User user = userData is User
+              ? userData as User
+              : User.fromJson(userData as Map<String, dynamic>);
           emit(AuthAuthenticated(user: user));
         } else {
           emit(AuthUnauthenticated());
         }
-        break;
+      } else {
+        emit(AuthUnauthenticated());
       }
     } catch (e) {
       emit(AuthError(error: e.toString()));
-    }
-  }
-
-  void _onAuthUpdateProfile(
-    AuthUpdateProfile event,
-    Emitter<AuthState> emit,
-  ) async {
-    if (state is AuthAuthenticated) {
-      final currentState = state as AuthAuthenticated;
-      try {
-        await authRepository.updateProfile(event.user);
-        emit(AuthAuthenticated(user: event.user));
-      } catch (e) {
-        emit(AuthError(error: e.toString()));
-        emit(currentState); // Revert to previous state
-      }
     }
   }
 }

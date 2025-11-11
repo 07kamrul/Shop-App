@@ -27,6 +27,9 @@ dependencies:
   csv:
   mobile_scanner:
   share_plus:
+  shared_preferences:
+  connectivity_plus:
+  dartz:
 
 dev_dependencies:
   flutter_test:

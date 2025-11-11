@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
-import '../../../../data/models/product_model.dart';
 import '../../../../core/utils/calculations.dart';
 
 class ProductCard extends StatelessWidget {
-  final Product product;
+  final dynamic product;
 
   const ProductCard({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
+    final buyingPrice = double.parse(product['buyingPrice'].toString());
+    final sellingPrice = double.parse(product['sellingPrice'].toString());
+    final profitPerUnit = sellingPrice - buyingPrice;
+    final profitMargin = sellingPrice > 0
+        ? (profitPerUnit / sellingPrice) * 100
+        : 0;
+    final isLowStock = product['isLowStock'] ?? false;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -22,14 +29,14 @@ class ProductCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    product.name,
+                    product['name'],
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                if (product.isLowStock)
+                if (isLowStock)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -52,7 +59,7 @@ class ProductCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              product.barcode ?? 'No barcode',
+              product['barcode'] ?? 'No barcode',
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 12),
@@ -60,19 +67,19 @@ class ProductCard extends StatelessWidget {
               children: [
                 _buildInfoItem(
                   'Stock',
-                  product.currentStock.toString(),
+                  product['currentStock'].toString(),
                   Icons.inventory_2,
                 ),
                 const SizedBox(width: 16),
                 _buildInfoItem(
                   'Buying',
-                  Calculations.formatCurrency(product.buyingPrice),
+                  Calculations.formatCurrency(buyingPrice),
                   Icons.shopping_cart,
                 ),
                 const SizedBox(width: 16),
                 _buildInfoItem(
                   'Selling',
-                  Calculations.formatCurrency(product.sellingPrice),
+                  Calculations.formatCurrency(sellingPrice),
                   Icons.sell,
                 ),
               ],
@@ -82,7 +89,7 @@ class ProductCard extends StatelessWidget {
               children: [
                 Chip(
                   label: Text(
-                    'Profit: ${Calculations.formatCurrency(product.profitPerUnit)}',
+                    'Profit: ${Calculations.formatCurrency(profitPerUnit)}',
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   backgroundColor: Colors.green,
@@ -90,7 +97,7 @@ class ProductCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Chip(
                   label: Text(
-                    'Margin: ${Calculations.formatPercentage(product.profitMargin)}',
+                    'Margin: ${Calculations.formatPercentage(profitMargin)}',
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   backgroundColor: Colors.blue,
@@ -146,7 +153,7 @@ class ProductCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Product'),
-        content: Text('Are you sure you want to delete ${product.name}?'),
+        content: Text('Are you sure you want to delete ${product['name']}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -155,7 +162,7 @@ class ProductCard extends StatelessWidget {
           TextButton(
             onPressed: () {
               context.read<ProductBloc>().add(
-                DeleteProduct(productId: product.id!),
+                DeleteProduct(productId: product['id']),
               );
               Navigator.pop(context);
             },

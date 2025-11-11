@@ -1,37 +1,38 @@
 part of 'category_bloc.dart';
 
+@immutable
 abstract class CategoryEvent extends Equatable {
   const CategoryEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class LoadCategories extends CategoryEvent {
-  final String userId;
+  final String? userId;
 
-  const LoadCategories({required this.userId});
+  const LoadCategories({this.userId});
 
   @override
-  List<Object> get props => [userId];
+  List<Object?> get props => [userId];
 }
 
 class AddCategory extends CategoryEvent {
-  final Category category;
+  final Map<String, dynamic> category;
 
   const AddCategory({required this.category});
 
   @override
-  List<Object> get props => [category];
+  List<Object?> get props => [category];
 }
 
 class UpdateCategory extends CategoryEvent {
-  final Category category;
+  final Map<String, dynamic> category;
 
   const UpdateCategory({required this.category});
 
   @override
-  List<Object> get props => [category];
+  List<Object?> get props => [category];
 }
 
 class DeleteCategory extends CategoryEvent {
@@ -40,5 +41,5 @@ class DeleteCategory extends CategoryEvent {
   const DeleteCategory({required this.categoryId});
 
   @override
-  List<Object> get props => [categoryId];
+  List<Object?> get props => [categoryId];
 }

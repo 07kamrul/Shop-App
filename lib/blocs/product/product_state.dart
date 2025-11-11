@@ -12,12 +12,12 @@ class ProductInitial extends ProductState {}
 class ProductsLoadInProgress extends ProductState {}
 
 class ProductsLoadSuccess extends ProductState {
-  final Stream<List<Product>> productsStream;
+  final List<dynamic> products;
 
-  const ProductsLoadSuccess({required this.productsStream});
+  const ProductsLoadSuccess({required this.products});
 
   @override
-  List<Object> get props => [productsStream];
+  List<Object> get props => [products];
 }
 
 class ProductOperationSuccess extends ProductState {}

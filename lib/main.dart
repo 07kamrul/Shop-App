@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'core/injection_container.dart';
+import 'blocs/auth/auth_bloc.dart';
 import 'features/auth/pages/login_page.dart';
 import 'features/dashboard/pages/dashboard_page.dart';
-import 'blocs/auth/auth_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  setupDependencies();
   runApp(const MyApp());
 }
 
@@ -21,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => getIt<AuthBloc>()..add(AuthCheckRequested()),
+          create: (context) => AuthBloc()..add(AuthCheckRequested()),
         ),
       ],
       child: MaterialApp(

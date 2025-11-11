@@ -1,26 +1,26 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../data/models/category_model.dart';
-import '../../data/repositories/category_repository.dart';
+import '../../../core/services/category_service.dart';
 
 part 'category_event.dart';
 part 'category_state.dart';
 
 class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
-  final CategoryRepository categoryRepository;
-
-  CategoryBloc({required this.categoryRepository}) : super(CategoryInitial()) {
+  CategoryBloc() : super(CategoryInitial()) {
     on<LoadCategories>(_onLoadCategories);
     on<AddCategory>(_onAddCategory);
     on<UpdateCategory>(_onUpdateCategory);
     on<DeleteCategory>(_onDeleteCategory);
   }
 
-  void _onLoadCategories(LoadCategories event, Emitter<CategoryState> emit) {
+  void _onLoadCategories(
+    LoadCategories event,
+    Emitter<CategoryState> emit,
+  ) async {
     emit(CategoriesLoadInProgress());
     try {
-      final categoriesStream = categoryRepository.getCategories(event.userId);
-      emit(CategoriesLoadSuccess(categoriesStream: categoriesStream));
+      final categories = await CategoryService.getCategories();
+      emit(CategoriesLoadSuccess(categories: categories));
     } catch (e) {
       emit(CategoriesLoadFailure(error: e.toString()));
     }
@@ -31,7 +31,15 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     Emitter<CategoryState> emit,
   ) async {
     try {
-      await categoryRepository.addCategory(event.category);
+      await CategoryService.createCategory(
+        name: event.category['name'],
+        parentCategoryId: event.category['parentCategoryId'],
+        description: event.category['description'],
+        profitMarginTarget: event.category['profitMarginTarget'],
+      );
+
+      // Reload categories after adding
+      add(LoadCategories(userId: event.category['userId']));
     } catch (e) {
       emit(CategoryOperationFailure(error: e.toString()));
     }
@@ -42,7 +50,16 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     Emitter<CategoryState> emit,
   ) async {
     try {
-      await categoryRepository.updateCategory(event.category);
+      await CategoryService.updateCategory(
+        id: event.category['id'],
+        name: event.category['name'],
+        parentCategoryId: event.category['parentCategoryId'],
+        description: event.category['description'],
+        profitMarginTarget: event.category['profitMarginTarget'],
+      );
+
+      // Reload categories after updating
+      add(LoadCategories(userId: event.category['userId']));
     } catch (e) {
       emit(CategoryOperationFailure(error: e.toString()));
     }
@@ -53,7 +70,10 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     Emitter<CategoryState> emit,
   ) async {
     try {
-      await categoryRepository.deleteCategory(event.categoryId);
+      await CategoryService.deleteCategory(event.categoryId);
+      // Reload categories after deletion
+      // You might need to pass userId here if you have it available
+      add(const LoadCategories());
     } catch (e) {
       emit(CategoryOperationFailure(error: e.toString()));
     }

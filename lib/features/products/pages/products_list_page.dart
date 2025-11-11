@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
-import '../../../../data/models/product_model.dart';
-import '../../../core/injection_container.dart';
 import '../widgets/product_card.dart';
 import 'add_product_page.dart';
 
@@ -12,10 +9,8 @@ class ProductsListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-
     return BlocProvider(
-      create: (context) => getIt<ProductBloc>()..add(LoadProducts()),
+      create: (context) => ProductBloc()..add(LoadProducts()),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Products'),
@@ -44,20 +39,10 @@ class ProductsListPage extends StatelessWidget {
             }
 
             if (state is ProductsLoadSuccess) {
-              return StreamBuilder<List<Product>>(
-                stream: state.productsStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    final products = snapshot.data!;
-                    return products.isEmpty
-                        ? _buildEmptyState()
-                        : _buildProductsList(products);
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  return const Center(child: CircularProgressIndicator());
-                },
-              );
+              final products = state.products;
+              return products.isEmpty
+                  ? _buildEmptyState()
+                  : _buildProductsList(products);
             }
 
             return const Center(child: Text('Load products to get started'));
@@ -97,7 +82,7 @@ class ProductsListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProductsList(List<Product> products) {
+  Widget _buildProductsList(List<dynamic> products) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: products.length,

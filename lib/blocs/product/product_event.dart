@@ -10,7 +10,7 @@ abstract class ProductEvent extends Equatable {
 class LoadProducts extends ProductEvent {}
 
 class AddProduct extends ProductEvent {
-  final Product product;
+  final Map<String, dynamic> product;
 
   const AddProduct({required this.product});
 
@@ -19,7 +19,7 @@ class AddProduct extends ProductEvent {
 }
 
 class UpdateProduct extends ProductEvent {
-  final Product product;
+  final Map<String, dynamic> product;
 
   const UpdateProduct({required this.product});
 

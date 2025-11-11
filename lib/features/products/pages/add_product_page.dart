@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shop/core/utils/barcode_scanner.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/category/category_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
-import '../../../../data/models/category_model.dart';
-import '../../../../data/models/product_model.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../core/utils/barcode_scanner.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -25,7 +23,7 @@ class _AddProductPageState extends State<AddProductPage> {
   final _minStockController = TextEditingController(text: '10');
 
   String? _selectedCategoryId;
-  List<Category> _categories = [];
+  List<dynamic> _categories = [];
 
   @override
   void initState() {
@@ -35,7 +33,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
   void _loadCategories() {
     final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-    context.read<CategoryBloc>().add(LoadCategories(userId: user.id));
+    context.read<CategoryBloc>().add(LoadCategories(userId: user['id']));
   }
 
   void _scanBarcode() async {
@@ -65,8 +63,6 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Add Product')),
       body: Padding(
@@ -211,60 +207,50 @@ class _AddProductPageState extends State<AddProductPage> {
         }
 
         if (state is CategoriesLoadSuccess) {
-          return StreamBuilder<List<Category>>(
-            stream: state.categoriesStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                _categories = snapshot.data!;
+          _categories = state.categories;
 
-                if (_categories.isEmpty) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'No categories available',
-                        style: TextStyle(color: Colors.orange),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          // Navigate to add category page
-                        },
-                        child: const Text('Add Category First'),
-                      ),
-                    ],
-                  );
-                }
+          if (_categories.isEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'No categories available',
+                  style: TextStyle(color: Colors.orange),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to add category page
+                  },
+                  child: const Text('Add Category First'),
+                ),
+              ],
+            );
+          }
 
-                return DropdownButtonFormField<String>(
-                  value: _selectedCategoryId,
-                  decoration: const InputDecoration(
-                    labelText: 'Category *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.category),
-                  ),
-                  items: _categories.map((category) {
-                    return DropdownMenuItem<String>(
-                      value: category.id,
-                      child: Text(category.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategoryId = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a category';
-                    }
-                    return null;
-                  },
-                );
-              } else if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}');
+          return DropdownButtonFormField<String>(
+            value: _selectedCategoryId,
+            decoration: const InputDecoration(
+              labelText: 'Category *',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.category),
+            ),
+            items: _categories.map((category) {
+              return DropdownMenuItem<String>(
+                value: category['id'],
+                child: Text(category['name']),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedCategoryId = value;
+              });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select a category';
               }
-              return const LinearProgressIndicator();
+              return null;
             },
           );
         }
@@ -326,20 +312,19 @@ class _AddProductPageState extends State<AddProductPage> {
 
   void _saveProduct() {
     if (_formKey.currentState!.validate() && _selectedCategoryId != null) {
-      final product = Product(
-        name: _nameController.text,
-        barcode: _barcodeController.text.isEmpty
+      final productData = {
+        'name': _nameController.text,
+        'barcode': _barcodeController.text.isEmpty
             ? null
             : _barcodeController.text,
-        categoryId: _selectedCategoryId!,
-        buyingPrice: double.parse(_buyingPriceController.text),
-        sellingPrice: double.parse(_sellingPriceController.text),
-        currentStock: int.parse(_stockController.text),
-        minStockLevel: int.parse(_minStockController.text),
-        createdAt: DateTime.now(),
-      );
+        'categoryId': _selectedCategoryId!,
+        'buyingPrice': double.parse(_buyingPriceController.text),
+        'sellingPrice': double.parse(_sellingPriceController.text),
+        'currentStock': int.parse(_stockController.text),
+        'minStockLevel': int.parse(_minStockController.text),
+      };
 
-      context.read<ProductBloc>().add(AddProduct(product: product));
+      context.read<ProductBloc>().add(AddProduct(product: productData));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

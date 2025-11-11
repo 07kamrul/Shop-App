@@ -1,10 +1,11 @@
 part of 'category_bloc.dart';
 
+@immutable
 abstract class CategoryState extends Equatable {
   const CategoryState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class CategoryInitial extends CategoryState {}
@@ -12,15 +13,13 @@ class CategoryInitial extends CategoryState {}
 class CategoriesLoadInProgress extends CategoryState {}
 
 class CategoriesLoadSuccess extends CategoryState {
-  final Stream<List<Category>> categoriesStream;
+  final List<dynamic> categories;
 
-  const CategoriesLoadSuccess({required this.categoriesStream});
+  const CategoriesLoadSuccess({required this.categories});
 
   @override
-  List<Object> get props => [categoriesStream];
+  List<Object?> get props => [categories];
 }
-
-class CategoryOperationSuccess extends CategoryState {}
 
 class CategoriesLoadFailure extends CategoryState {
   final String error;
@@ -28,7 +27,7 @@ class CategoriesLoadFailure extends CategoryState {
   const CategoriesLoadFailure({required this.error});
 
   @override
-  List<Object> get props => [error];
+  List<Object?> get props => [error];
 }
 
 class CategoryOperationFailure extends CategoryState {
@@ -37,5 +36,7 @@ class CategoryOperationFailure extends CategoryState {
   const CategoryOperationFailure({required this.error});
 
   @override
-  List<Object> get props => [error];
+  List<Object?> get props => [error];
 }
+
+class CategoryOperationSuccess extends CategoryState {}
