@@ -12,15 +12,13 @@ class SupplierInitial extends SupplierState {}
 class SuppliersLoadInProgress extends SupplierState {}
 
 class SuppliersLoadSuccess extends SupplierState {
-  final Stream<List<Supplier>> suppliersStream;
+  final List<Supplier> suppliers;
 
-  const SuppliersLoadSuccess({required this.suppliersStream});
+  const SuppliersLoadSuccess({required this.suppliers});
 
   @override
-  List<Object> get props => [suppliersStream];
+  List<Object> get props => [suppliers];
 }
-
-class SupplierOperationSuccess extends SupplierState {}
 
 class SuppliersLoadFailure extends SupplierState {
   final String error;
@@ -30,6 +28,10 @@ class SuppliersLoadFailure extends SupplierState {
   @override
   List<Object> get props => [error];
 }
+
+class SupplierOperationInProgress extends SupplierState {}
+
+class SupplierOperationSuccess extends SupplierState {}
 
 class SupplierOperationFailure extends SupplierState {
   final String error;

@@ -1,15 +1,13 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../core/services/customer_service.dart';
 import '../../data/models/customer_model.dart';
-import '../../data/repositories/customer_repository.dart';
 
 part 'customer_event.dart';
 part 'customer_state.dart';
 
 class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
-  final CustomerRepository customerRepository;
-
-  CustomerBloc({required this.customerRepository}) : super(CustomerInitial()) {
+  CustomerBloc() : super(CustomerInitial()) {
     on<LoadCustomers>(_onLoadCustomers);
     on<SearchCustomers>(_onSearchCustomers);
     on<AddCustomer>(_onAddCustomer);
@@ -18,24 +16,29 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
     on<LoadTopCustomers>(_onLoadTopCustomers);
   }
 
-  void _onLoadCustomers(LoadCustomers event, Emitter<CustomerState> emit) {
+  Future<void> _onLoadCustomers(
+    LoadCustomers event,
+    Emitter<CustomerState> emit,
+  ) async {
     emit(CustomersLoadInProgress());
     try {
-      final customersStream = customerRepository.getCustomers(event.userId);
-      emit(CustomersLoadSuccess(customersStream: customersStream));
+      final customersData = await CustomerService.getCustomers();
+      final customers = customersData.map((data) => Customer.fromJson(data)).toList();
+      emit(CustomersLoadSuccess(customers: customers));
     } catch (e) {
       emit(CustomersLoadFailure(error: e.toString()));
     }
   }
 
-  void _onSearchCustomers(SearchCustomers event, Emitter<CustomerState> emit) {
+  Future<void> _onSearchCustomers(
+    SearchCustomers event,
+    Emitter<CustomerState> emit,
+  ) async {
     emit(CustomersLoadInProgress());
     try {
-      final customersStream = customerRepository.searchCustomers(
-        event.userId,
-        event.query,
-      );
-      emit(CustomersLoadSuccess(customersStream: customersStream));
+      final customersData = await CustomerService.searchCustomers(event.query);
+      final customers = customersData.map((data) => Customer.fromJson(data)).toList();
+      emit(CustomersLoadSuccess(customers: customers));
     } catch (e) {
       emit(CustomersLoadFailure(error: e.toString()));
     }
@@ -45,9 +48,17 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
     AddCustomer event,
     Emitter<CustomerState> emit,
   ) async {
+    emit(CustomerOperationInProgress());
     try {
-      await customerRepository.addCustomer(event.customer);
-      // Customers will be updated via stream
+      await CustomerService.createCustomer(
+        name: event.customer.name,
+        phone: event.customer.phone,
+        email: event.customer.email,
+        address: event.customer.address,
+      );
+
+      // Reload customers after adding
+      add(const LoadCustomers());
     } catch (e) {
       emit(CustomerOperationFailure(error: e.toString()));
     }
@@ -57,8 +68,24 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
     UpdateCustomer event,
     Emitter<CustomerState> emit,
   ) async {
+    emit(CustomerOperationInProgress());
     try {
-      await customerRepository.updateCustomer(event.customer);
+      final id = event.customer.id;
+      if (id == null) {
+        emit(CustomerOperationFailure(error: 'Customer id is null'));
+        return;
+      }
+
+      await CustomerService.updateCustomer(
+        id: id,
+        name: event.customer.name,
+        phone: event.customer.phone,
+        email: event.customer.email,
+        address: event.customer.address,
+      );
+
+      // Reload customers after updating
+      add(const LoadCustomers());
     } catch (e) {
       emit(CustomerOperationFailure(error: e.toString()));
     }
@@ -68,24 +95,26 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
     DeleteCustomer event,
     Emitter<CustomerState> emit,
   ) async {
+    emit(CustomerOperationInProgress());
     try {
-      await customerRepository.deleteCustomer(event.customerId);
+      await CustomerService.deleteCustomer(event.customerId);
+      
+      // Reload customers after deletion
+      add(const LoadCustomers());
     } catch (e) {
       emit(CustomerOperationFailure(error: e.toString()));
     }
   }
 
-  void _onLoadTopCustomers(
+  Future<void> _onLoadTopCustomers(
     LoadTopCustomers event,
     Emitter<CustomerState> emit,
-  ) {
+  ) async {
     emit(CustomersLoadInProgress());
     try {
-      final customersStream = customerRepository.getTopCustomers(
-        event.userId,
-        limit: event.limit,
-      );
-      emit(CustomersLoadSuccess(customersStream: customersStream));
+      final customersData = await CustomerService.getTopCustomers(limit: event.limit);
+      final customers = customersData.map((data) => Customer.fromJson(data)).toList();
+      emit(CustomersLoadSuccess(customers: customers));
     } catch (e) {
       emit(CustomersLoadFailure(error: e.toString()));
     }

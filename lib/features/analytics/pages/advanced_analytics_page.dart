@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shop_management/data/models/report_model.dart';
+import 'package:shop_management/data/models/user_model.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/report/report_bloc.dart';
-import '../../../core/injection_container.dart';
 import '../../reports/widgets/profit_chart.dart';
 import '../../reports/widgets/sales_pie_chart.dart';
 
@@ -19,8 +20,6 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Advanced Analytics'),
@@ -33,73 +32,96 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
           ),
         ],
       ),
-      body: BlocProvider(
-        create: (context) => getIt<ReportBloc>()
-          ..add(
-            LoadDailySalesReport(
-              userId: user.id,
-              startDate: _startDate,
-              endDate: _endDate,
-            ),
-          )
-          ..add(
-            LoadTopSellingProducts(
-              userId: user.id,
-              startDate: _startDate,
-              endDate: _endDate,
-            ),
-          ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              _buildDateRangeSelector(),
-              const SizedBox(height: 20),
-              Expanded(
-                child: BlocBuilder<ReportBloc, ReportState>(
-                  builder: (context, state) {
-                    if (state is ReportLoadInProgress) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+      body: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          if (authState is! AuthAuthenticated) {
+            return const Center(child: Text('Please log in to view analytics'));
+          }
 
-                    if (state is DailySalesReportLoaded &&
-                        state is TopSellingProductsLoaded) {
-                      final dailyReports =
-                          (state as DailySalesReportLoaded).reports;
-                      final topProducts =
-                          (state as TopSellingProductsLoaded).products;
+          final user = authState.user;
 
-                      return ListView(
-                        children: [
-                          SizedBox(
-                            height: 300,
-                            child: ProfitChart(reports: dailyReports),
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            height: 300,
-                            child: SalesPieChart(topProducts: topProducts),
-                          ),
-                        ],
-                      );
-                    }
-
-                    if (state is ReportLoadFailure) {
-                      return Center(child: Text('Error: ${state.error}'));
-                    }
-
-                    return const Center(child: Text('Load analytics data'));
-                  },
+          return BlocProvider(
+            create: (context) => ReportBloc()
+              ..add(
+                LoadDailySalesReport(
+                  startDate: _startDate,
+                  endDate: _endDate,
+                ),
+              )
+              ..add(
+                LoadTopSellingProducts(
+                  startDate: _startDate,
+                  endDate: _endDate,
                 ),
               ),
-            ],
-          ),
-        ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildDateRangeSelector(context, user),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: BlocBuilder<ReportBloc, ReportState>(
+                      builder: (context, state) {
+                        if (state is ReportLoadInProgress) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        if (state is ReportLoadFailure) {
+                          return Center(child: Text('Error: ${state.error}'));
+                        }
+
+                        // Handle multiple loaded states
+                        List<DailySalesReport> dailyReports = [];
+                        List<ProductSales> topProducts = [];
+
+                        // We need to track which events have been completed
+                        bool hasDailySales = false;
+                        bool hasTopProducts = false;
+
+                        // Check if we have the required data
+                        if (state is DailySalesReportLoaded) {
+                          dailyReports = state.reports;
+                          hasDailySales = true;
+                        }
+
+                        if (state is TopSellingProductsLoaded) {
+                          topProducts = state.products;
+                          hasTopProducts = true;
+                        }
+
+                        // If we have both data sets, show the charts
+                        if (hasDailySales && hasTopProducts) {
+                          return ListView(
+                            children: [
+                              SizedBox(
+                                height: 300,
+                                child: ProfitChart(reports: dailyReports),
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                height: 300,
+                                child: SalesPieChart(topProducts: topProducts),
+                              ),
+                            ],
+                          );
+                        }
+
+                        // If we're still loading individual reports
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildDateRangeSelector() {
+  Widget _buildDateRangeSelector(BuildContext context, User user) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -112,7 +134,7 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
                   const Text('From Date'),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    onPressed: () => _selectStartDate(context),
+                    onPressed: () => _selectStartDate(context, user),
                     child: Text(
                       '${_startDate.day}/${_startDate.month}/${_startDate.year}',
                     ),
@@ -128,7 +150,7 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
                   const Text('To Date'),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    onPressed: () => _selectEndDate(context),
+                    onPressed: () => _selectEndDate(context, user),
                     child: Text(
                       '${_endDate.day}/${_endDate.month}/${_endDate.year}',
                     ),
@@ -142,7 +164,7 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
     );
   }
 
-  Future<void> _selectStartDate(BuildContext context) async {
+  Future<void> _selectStartDate(BuildContext context, User user) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _startDate,
@@ -153,11 +175,11 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
       setState(() {
         _startDate = picked;
       });
-      _refreshData();
+      _refreshData(context, user);
     }
   }
 
-  Future<void> _selectEndDate(BuildContext context) async {
+  Future<void> _selectEndDate(BuildContext context, User user) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _endDate,
@@ -168,23 +190,20 @@ class _AdvancedAnalyticsPageState extends State<AdvancedAnalyticsPage> {
       setState(() {
         _endDate = picked;
       });
-      _refreshData();
+      _refreshData(context, user);
     }
   }
 
-  void _refreshData() {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+  void _refreshData(BuildContext context, User user) {
     context.read<ReportBloc>()
       ..add(
         LoadDailySalesReport(
-          userId: user.id,
           startDate: _startDate,
           endDate: _endDate,
         ),
       )
       ..add(
         LoadTopSellingProducts(
-          userId: user.id,
           startDate: _startDate,
           endDate: _endDate,
         ),

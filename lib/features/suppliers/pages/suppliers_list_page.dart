@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/supplier/supplier_bloc.dart';
 import '../../../../data/models/supplier_model.dart';
-import '../../../core/injection_container.dart';
 import '../widgets/supplier_card.dart';
 import 'add_supplier_page.dart';
 
@@ -33,69 +32,122 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
   }
 
   void _loadAllSuppliers() {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-    context.read<SupplierBloc>().add(LoadSuppliers(userId: user.id));
+    context.read<SupplierBloc>().add(const LoadSuppliers());
   }
 
   void _searchSuppliers(String query) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-    context.read<SupplierBloc>().add(
-      SearchSuppliers(userId: user.id, query: query),
-    );
+    context.read<SupplierBloc>().add(SearchSuppliers(query: query));
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! AuthAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Suppliers')),
+            body: const Center(child: Text('Please log in to view suppliers')),
+          );
+        }
 
-    return BlocProvider(
-      create: (context) =>
-          getIt<SupplierBloc>()..add(LoadSuppliers(userId: user.id)),
-      child: Scaffold(
-        appBar: AppBar(
-          title: _isSearching ? _buildSearchField() : const Text('Suppliers'),
-          actions: _buildAppBarActions(),
-        ),
-        body: BlocBuilder<SupplierBloc, SupplierState>(
-          builder: (context, state) {
-            if (state is SuppliersLoadInProgress) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is SuppliersLoadFailure) {
-              return Center(child: Text('Error: ${state.error}'));
-            }
-
-            if (state is SuppliersLoadSuccess) {
-              return StreamBuilder<List<Supplier>>(
-                stream: state.suppliersStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    final suppliers = snapshot.data!;
-                    return suppliers.isEmpty
-                        ? _buildEmptyState()
-                        : _buildSuppliersList(suppliers);
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
+        return BlocProvider(
+          create: (context) => SupplierBloc()..add(const LoadSuppliers()),
+          child: Scaffold(
+            appBar: AppBar(
+              title: _isSearching ? _buildSearchField() : const Text('Suppliers'),
+              actions: _buildAppBarActions(),
+            ),
+            body: BlocConsumer<SupplierBloc, SupplierState>(
+              listener: (context, state) {
+                // Handle success operations
+                if (state is SupplierOperationSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Operation completed successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  
+                  // Reload suppliers after any operation
+                  context.read<SupplierBloc>().add(const LoadSuppliers());
+                }
+                
+                // Handle operation failures
+                if (state is SupplierOperationFailure) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${state.error}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              builder: (context, state) {
+                if (state is SuppliersLoadInProgress || 
+                    state is SupplierOperationInProgress) {
                   return const Center(child: CircularProgressIndicator());
-                },
-              );
-            }
+                }
 
-            return const Center(child: Text('Load suppliers to get started'));
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddSupplierPage()),
-            );
-          },
-          child: const Icon(Icons.add),
-        ),
-      ),
+                if (state is SuppliersLoadFailure) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load suppliers',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          state.error,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<SupplierBloc>().add(const LoadSuppliers());
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (state is SuppliersLoadSuccess) {
+                  final suppliers = state.suppliers;
+                  
+                  if (suppliers.isEmpty) {
+                    return _buildEmptyState();
+                  }
+
+                  // Convert to Supplier list - simplified without unnecessary type checks
+                  final supplierList = suppliers.map((data) {
+                    // Direct conversion assuming data is already Map<String, dynamic>
+                    return Supplier.fromJson(data as Map<String, dynamic>);
+                  }).toList();
+
+                  return _buildSuppliersList(supplierList);
+                }
+
+                return const Center(child: Text('Load suppliers to get started'));
+              },
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddSupplierPage()),
+                );
+              },
+              child: const Icon(Icons.add),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -134,15 +186,6 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
             setState(() {
               _isSearching = true;
             });
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddSupplierPage()),
-            );
           },
         ),
       ];

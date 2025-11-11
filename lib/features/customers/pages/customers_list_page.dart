@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/customer/customer_bloc.dart';
 import '../../../../data/models/customer_model.dart';
-import '../../../core/injection_container.dart';
 import '../widgets/customer_card.dart';
 import 'add_customer_page.dart';
 
@@ -33,69 +32,114 @@ class _CustomersListPageState extends State<CustomersListPage> {
   }
 
   void _loadAllCustomers() {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-    context.read<CustomerBloc>().add(LoadCustomers(userId: user.id));
+    context.read<CustomerBloc>().add(const LoadCustomers());
   }
 
   void _searchCustomers(String query) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-    context.read<CustomerBloc>().add(
-      SearchCustomers(userId: user.id, query: query),
-    );
+    context.read<CustomerBloc>().add(SearchCustomers(query: query));
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! AuthAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Customers')),
+            body: const Center(child: Text('Please log in to view customers')),
+          );
+        }
 
-    return BlocProvider(
-      create: (context) =>
-          getIt<CustomerBloc>()..add(LoadCustomers(userId: user.id)),
-      child: Scaffold(
-        appBar: AppBar(
-          title: _isSearching ? _buildSearchField() : const Text('Customers'),
-          actions: _buildAppBarActions(),
-        ),
-        body: BlocBuilder<CustomerBloc, CustomerState>(
-          builder: (context, state) {
-            if (state is CustomersLoadInProgress) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is CustomersLoadFailure) {
-              return Center(child: Text('Error: ${state.error}'));
-            }
-
-            if (state is CustomersLoadSuccess) {
-              return StreamBuilder<List<Customer>>(
-                stream: state.customersStream,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    final customers = snapshot.data!;
-                    return customers.isEmpty
-                        ? _buildEmptyState()
-                        : _buildCustomersList(customers);
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
+        return BlocProvider(
+          create: (context) => CustomerBloc()..add(const LoadCustomers()),
+          child: Scaffold(
+            appBar: AppBar(
+              title: _isSearching ? _buildSearchField() : const Text('Customers'),
+              actions: _buildAppBarActions(),
+            ),
+            body: BlocConsumer<CustomerBloc, CustomerState>(
+              listener: (context, state) {
+                // Handle success operations
+                if (state is CustomerOperationSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Operation completed successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  
+                  // Reload customers after any operation
+                  context.read<CustomerBloc>().add(const LoadCustomers());
+                }
+                
+                // Handle operation failures
+                if (state is CustomerOperationFailure) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${state.error}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              builder: (context, state) {
+                if (state is CustomersLoadInProgress || 
+                    state is CustomerOperationInProgress) {
                   return const Center(child: CircularProgressIndicator());
-                },
-              );
-            }
+                }
 
-            return const Center(child: Text('Load customers to get started'));
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddCustomerPage()),
-            );
-          },
-          child: const Icon(Icons.add),
-        ),
-      ),
+                if (state is CustomersLoadFailure) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load customers',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          state.error,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<CustomerBloc>().add(const LoadCustomers());
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (state is CustomersLoadSuccess) {
+                  final customers = state.customers;
+                  
+                  return customers.isEmpty
+                      ? _buildEmptyState()
+                      : _buildCustomersList(customers);
+                }
+
+                return const Center(child: Text('Load customers to get started'));
+              },
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddCustomerPage()),
+                );
+              },
+              child: const Icon(Icons.add),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -134,15 +178,6 @@ class _CustomersListPageState extends State<CustomersListPage> {
             setState(() {
               _isSearching = true;
             });
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddCustomerPage()),
-            );
           },
         ),
       ];

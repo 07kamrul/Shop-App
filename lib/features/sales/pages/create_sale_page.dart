@@ -22,57 +22,105 @@ class _CreateSalePageState extends State<CreateSalePage> {
   @override
   void initState() {
     super.initState();
-    context.read<ProductBloc>().add(LoadProducts());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductBloc>().add(LoadProducts());
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! AuthAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('New Sale')),
+            body: const Center(child: Text('Please log in to create sales')),
+          );
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Sale'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saleItems.isNotEmpty
-                ? () => _completeSale(user.id)
-                : null,
+        final user = authState.user;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('New Sale'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.save),
+                onPressed: _saleItems.isNotEmpty
+                    ? () => _completeSale(user.id)
+                    : null,
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Customer Info
-          _buildCustomerInfo(),
+          body: Column(
+            children: [
+              // Customer Info
+              _buildCustomerInfo(),
 
-          // Products List
-          Expanded(
-            child: BlocBuilder<ProductBloc, ProductState>(
-              builder: (context, state) {
-                if (state is ProductsLoadSuccess) {
-                  return StreamBuilder<List<Product>>(
-                    stream: state.productsStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        final products = snapshot.data!
-                            .where((product) => product.currentStock > 0)
-                            .toList();
-                        return _buildProductsGrid(products);
-                      }
+              // Products List
+              Expanded(
+                child: BlocBuilder<ProductBloc, ProductState>(
+                  builder: (context, state) {
+                    if (state is ProductsLoadInProgress) {
                       return const Center(child: CircularProgressIndicator());
-                    },
-                  );
-                }
-                return const Center(child: CircularProgressIndicator());
-              },
-            ),
-          ),
+                    }
 
-          // Sale Summary
-          _buildSaleSummary(),
-        ],
-      ),
+                    if (state is ProductsLoadFailure) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Failed to load products',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              state.error,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<ProductBloc>().add(LoadProducts());
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (state is ProductsLoadSuccess) {
+                      final products = state.products;
+                      
+                      // Filter products with stock and convert to Product objects
+                      final availableProducts = products.where((productData) {
+                        if (productData is Map<String, dynamic>) {
+                          final currentStock = productData['currentStock'] ?? 0;
+                          return currentStock > 0;
+                        } else if (productData is Product) {
+                          return productData.currentStock > 0;
+                        }
+                        return false;
+                      }).toList();
+
+                      return _buildProductsGrid(availableProducts);
+                    }
+
+                    return const Center(child: Text('Load products to start sale'));
+                  },
+                ),
+              ),
+
+              // Sale Summary
+              _buildSaleSummary(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -132,7 +180,7 @@ class _CreateSalePageState extends State<CreateSalePage> {
     );
   }
 
-  Widget _buildProductsGrid(List<Product> products) {
+  Widget _buildProductsGrid(List<dynamic> products) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -143,7 +191,8 @@ class _CreateSalePageState extends State<CreateSalePage> {
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {
-        final product = products[index];
+        final productData = products[index];
+        final product = _convertToProduct(productData);
         final saleItem = _saleItems.firstWhere(
           (item) => item.productId == product.id,
           orElse: () => const SaleItem(
@@ -158,6 +207,42 @@ class _CreateSalePageState extends State<CreateSalePage> {
         return _buildProductCard(product, saleItem);
       },
     );
+  }
+
+  Product _convertToProduct(dynamic productData) {
+    if (productData is Product) {
+      return productData;
+    } else if (productData is Map<String, dynamic>) {
+      return Product(
+        id: productData['id'] ?? productData['_id'],
+        name: productData['name'] ?? 'Unknown Product',
+        categoryId: productData['categoryId'],
+        buyingPrice: (productData['buyingPrice'] ?? 0).toDouble(),
+        sellingPrice: (productData['sellingPrice'] ?? 0).toDouble(),
+        currentStock: productData['currentStock'] ?? 0,
+        minStockLevel: productData['minStockLevel'] ?? 10,
+        barcode: productData['barcode'],
+        supplierId: productData['supplierId'],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        createdBy: productData['createdBy'] ?? '',
+      );
+    } else {
+      return Product(
+        id: 'unknown',
+        name: 'Unknown Product',
+        categoryId: '',
+        buyingPrice: 0,
+        sellingPrice: 0,
+        currentStock: 0,
+        minStockLevel: 10,
+        barcode: null,
+        supplierId: null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        createdBy: 'system',
+      );
+    }
   }
 
   Widget _buildProductCard(Product product, SaleItem saleItem) {
@@ -228,11 +313,11 @@ class _CreateSalePageState extends State<CreateSalePage> {
   }
 
   Widget _buildSaleSummary() {
-    final totalAmount = _saleItems.fold(
+    final totalAmount = _saleItems.fold<double>(
       0.0,
       (sum, item) => sum + item.totalAmount,
     );
-    final totalProfit = _saleItems.fold(
+    final totalProfit = _saleItems.fold<double>(
       0.0,
       (sum, item) => sum + item.totalProfit,
     );
@@ -280,27 +365,58 @@ class _CreateSalePageState extends State<CreateSalePage> {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saleItems.isNotEmpty
-                    ? () {
-                        final user =
-                            (context.read<AuthBloc>().state
-                                    as AuthAuthenticated)
-                                .user;
-                        _completeSale(user.id);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.green,
-                ),
-                child: const Text(
-                  'Complete Sale',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
+            BlocConsumer<SaleBloc, SaleState>(
+              listener: (context, state) {
+                if (state is SaleOperationFailure) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Sale failed: ${state.error}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } else if (state is SalesLoadSuccess) {
+                  // Sale was added successfully and sales reloaded
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sale completed successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  Navigator.pop(context);
+                }
+              },
+              builder: (context, state) {
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saleItems.isNotEmpty && state is! SaleOperationInProgress
+                        ? () {
+                            final authState = context.read<AuthBloc>().state;
+                            if (authState is AuthAuthenticated) {
+                              _completeSale(authState.user.id);
+                            }
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.green,
+                    ),
+                    child: state is SaleOperationInProgress
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Complete Sale',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -353,41 +469,32 @@ class _CreateSalePageState extends State<CreateSalePage> {
   void _completeSale(String userId) {
     if (_saleItems.isEmpty) return;
 
-    final totalAmount = _saleItems.fold(
+    final totalAmount = _saleItems.fold<double>(
       0.0,
       (sum, item) => sum + item.totalAmount,
     );
-    final totalProfit = _saleItems.fold(
+    final totalCost = _saleItems.fold<double>(
+      0.0,
+      (sum, item) => sum + item.totalCost,
+    );
+    final totalProfit = _saleItems.fold<double>(
       0.0,
       (sum, item) => sum + item.totalProfit,
     );
 
-    final sale = Sale(
-      dateTime: DateTime.now(),
+    final sale = Sale.create(
       items: _saleItems,
       customerName: _customerNameController.text.isEmpty
           ? null
-          : _customerNameController.text,
+          : _customerNameController.text.trim(),
       customerPhone: _customerPhoneController.text.isEmpty
           ? null
-          : _customerPhoneController.text,
+          : _customerPhoneController.text.trim(),
       paymentMethod: _paymentMethod,
-      totalAmount: totalAmount,
-      totalCost: totalAmount - totalProfit,
-      totalProfit: totalProfit,
       createdBy: userId,
     );
 
     context.read<SaleBloc>().add(AddSale(sale: sale));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sale completed successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    Navigator.pop(context);
   }
 
   @override

@@ -117,6 +117,7 @@ class _AddSupplierPageState extends State<AddSupplierPage> {
         totalProducts: 0,
         lastPurchaseDate: DateTime.now(),
         createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
         createdBy: userId,
       );
 

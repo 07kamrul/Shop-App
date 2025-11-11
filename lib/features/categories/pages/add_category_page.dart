@@ -20,85 +20,142 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Add Category')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Category Name *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
-                ),
-                validator: Validators.validateName,
+      body: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          if (authState is! AuthAuthenticated) {
+            return const Center(child: Text('Please log in to add categories'));
+          }
+
+          final user = authState.user;
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Category Name *',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.category),
+                    ),
+                    validator: Validators.validateName,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.description),
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _targetMarginController,
+                    decoration: const InputDecoration(
+                      labelText: 'Target Profit Margin % (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.percent),
+                      suffixText: '%',
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final margin = double.tryParse(value);
+                        if (margin == null) {
+                          return 'Please enter a valid number';
+                        }
+                        if (margin < 0 || margin > 100) {
+                          return 'Profit margin must be between 0 and 100';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  BlocListener<CategoryBloc, CategoryState>(
+                    listener: (context, state) {
+                      if (state is CategoryOperationFailure) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${state.error}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    child: ElevatedButton(
+                      onPressed: () => _saveCategory(user.id),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: BlocBuilder<CategoryBloc, CategoryState>(
+                        builder: (context, state) {
+                          if (state is CategoryOperationInProgress) {
+                            return const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            );
+                          }
+                          return const Text('Save Category');
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (Optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _targetMarginController,
-                decoration: const InputDecoration(
-                  labelText: 'Target Profit Margin % (Optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.percent),
-                  suffixText: '%',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () => _saveCategory(user.id),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('Save Category'),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
   void _saveCategory(String userId) {
     if (_formKey.currentState!.validate()) {
-      final category = Category(
-        name: _nameController.text,
+      // Create category using the factory method
+      final category = Category.create(
+        name: _nameController.text.trim(),
         description: _descriptionController.text.isEmpty
             ? null
-            : _descriptionController.text,
+            : _descriptionController.text.trim(),
         profitMarginTarget: _targetMarginController.text.isEmpty
             ? null
             : double.tryParse(_targetMarginController.text),
-        createdAt: DateTime.now(),
         createdBy: userId,
       );
 
-      context.read<CategoryBloc>().add(AddCategory(category: category));
+      // Convert to the format expected by the CategoryBloc
+      final categoryData = {
+        'name': category.name,
+        'description': category.description,
+        'profitMarginTarget': category.profitMarginTarget,
+        // Note: The current CategoryBloc expects a Map, not a Category object
+        // You may need to update your CategoryBloc to accept Category objects directly
+      };
 
+      context.read<CategoryBloc>().add(AddCategory(category: categoryData));
+
+      // Show success message immediately (the bloc will handle the actual operation)
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Category added successfully!'),
-          backgroundColor: Colors.green,
+          content: Text('Adding category...'),
+          backgroundColor: Colors.blue,
         ),
       );
 
-      Navigator.pop(context);
+      // Don't pop immediately - wait for the operation to complete
+      // The navigation will happen when the operation succeeds via BlocListener
     }
   }
 

@@ -97,7 +97,7 @@ class ProductCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Chip(
                   label: Text(
-                    'Margin: ${Calculations.formatPercentage(profitMargin)}',
+                    'Margin: ${Calculations.formatPercentage(profitMargin as double)}',
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   backgroundColor: Colors.blue,

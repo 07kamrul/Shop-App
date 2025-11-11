@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../blocs/sale/sale_bloc.dart';
-import '../../../core/injection_container.dart';
 import '../../../data/models/sale_model.dart';
 import '../../../data/models/user_model.dart';
 import '../widgets/quick_actions.dart';
@@ -14,59 +13,71 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! AuthAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Dashboard')),
+            body: const Center(child: Text('Please log in to view dashboard')),
+          );
+        }
 
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<ProductBloc>(create: (context) => getIt<ProductBloc>()),
-        BlocProvider<SaleBloc>(
-          create: (context) =>
-              getIt<SaleBloc>()..add(LoadTodaySales(userId: user.id)),
-        ),
-      ],
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('${user.shopName} Dashboard'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () {
-                context.read<AuthBloc>().add(AuthSignOutRequested());
-              },
+        final user = authState.user;
+
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider<ProductBloc>(
+              create: (context) => ProductBloc()..add(LoadProducts()),
+            ),
+            BlocProvider<SaleBloc>(
+              create: (context) => SaleBloc()..add(const LoadTodaySales()),
             ),
           ],
-        ),
-        body: BlocBuilder<SaleBloc, SaleState>(
-          builder: (context, saleState) {
-            return BlocBuilder<ProductBloc, ProductState>(
-              builder: (context, productState) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Welcome Section
-                      _buildWelcomeSection(user),
-                      const SizedBox(height: 20),
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text('${user.shopName} Dashboard'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () {
+                    context.read<AuthBloc>().add(AuthSignOutRequested());
+                  },
+                ),
+              ],
+            ),
+            body: BlocBuilder<SaleBloc, SaleState>(
+              builder: (context, saleState) {
+                return BlocBuilder<ProductBloc, ProductState>(
+                  builder: (context, productState) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Welcome Section
+                          _buildWelcomeSection(user),
+                          const SizedBox(height: 20),
 
-                      // Stats Grid
-                      _buildStatsGrid(context, saleState, productState),
-                      const SizedBox(height: 20),
+                          // Stats Grid
+                          _buildStatsGrid(context, saleState, productState),
+                          const SizedBox(height: 20),
 
-                      // Quick Actions
-                      const QuickActions(),
-                      const SizedBox(height: 20),
+                          // Quick Actions
+                          const QuickActions(),
+                          const SizedBox(height: 20),
 
-                      // Recent Activity
-                      _buildRecentActivity(context),
-                    ],
-                  ),
+                          // Recent Activity
+                          _buildRecentActivity(context, saleState),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -94,17 +105,27 @@ class DashboardPage extends StatelessWidget {
   ) {
     int totalProducts = 0;
     int lowStockCount = 0;
-    double todaySales = 0;
-    double todayProfit = 0;
+    double todaySales = 0.0;
+    int todayTransactions = 0;
 
+    // Calculate product statistics
     if (productState is ProductsLoadSuccess) {
-      // We'll get actual data from stream in the actual implementation
-      totalProducts = 0; // This would be calculated from stream
-      lowStockCount = 0; // This would be calculated from stream
+      final products = productState.products;
+      totalProducts = products.length;
+      lowStockCount = products.where((product) {
+        final currentStock = product['currentStock'] ?? 0;
+        final minStockLevel = product['minStockLevel'] ?? 10;
+        return currentStock <= minStockLevel;
+      }).length;
     }
 
+    // Calculate sales statistics
     if (saleState is SalesLoadSuccess) {
-      // Today's sales and profit would be calculated from stream
+      final sales = saleState.sales;
+      todayTransactions = sales.length;
+      todaySales = sales.fold(0.0, (total, saleData) {
+        return total + saleData.totalAmount;
+      });
     }
 
     return GridView.count(
@@ -119,30 +140,39 @@ class DashboardPage extends StatelessWidget {
           value: '₹${todaySales.toStringAsFixed(2)}',
           icon: Icons.shopping_cart,
           color: Colors.blue,
+          subtitle: '$todayTransactions transactions',
         ),
         StatsCard(
           title: 'Today\'s Profit',
-          value: '₹${todayProfit.toStringAsFixed(2)}',
+          value: '₹${_calculateEstimatedProfit(todaySales).toStringAsFixed(2)}',
           icon: Icons.attach_money,
           color: Colors.green,
+          subtitle: 'Estimated',
         ),
         StatsCard(
           title: 'Total Products',
           value: totalProducts.toString(),
           icon: Icons.inventory_2,
           color: Colors.orange,
+          subtitle: '$lowStockCount low stock',
         ),
         StatsCard(
           title: 'Low Stock',
           value: lowStockCount.toString(),
           icon: Icons.warning,
-          color: Colors.red,
+          color: lowStockCount > 0 ? Colors.red : Colors.grey,
+          subtitle: 'Need attention',
         ),
       ],
     );
   }
 
-  Widget _buildRecentActivity(BuildContext context) {
+  double _calculateEstimatedProfit(double totalSales) {
+    // Simple estimation: Assume 25% profit margin
+    return totalSales * 0.25;
+  }
+
+  Widget _buildRecentActivity(BuildContext context, SaleState saleState) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,64 +183,117 @@ class DashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: BlocBuilder<SaleBloc, SaleState>(
-              builder: (context, state) {
-                if (state is SalesLoadInProgress) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state is SalesLoadFailure) {
-                  return Center(child: Text('Error: ${state.error}'));
-                }
-
-                if (state is SalesLoadSuccess) {
-                  return StreamBuilder<List<Sale>>(
-                    stream: state.salesStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        final sales = snapshot.data!.take(5).toList();
-
-                        if (sales.isEmpty) {
-                          return const Center(child: Text('No recent sales'));
-                        }
-
-                        return ListView.builder(
-                          itemCount: sales.length,
-                          itemBuilder: (context, index) {
-                            final sale = sales[index];
-                            return Card(
-                              child: ListTile(
-                                leading: const Icon(Icons.receipt),
-                                title: Text(
-                                  'Sale #${sale.id!.substring(0, 8)}',
-                                ),
-                                subtitle: Text(
-                                  '${sale.items.length} items • ${sale.dateTime.toString().substring(0, 16)}',
-                                ),
-                                trailing: Text(
-                                  '₹${sale.totalAmount.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }
-
-                      return const Center(child: CircularProgressIndicator());
-                    },
-                  );
-                }
-
-                return const Center(child: Text('Load sales to see activity'));
-              },
-            ),
+            child: _buildSalesList(saleState),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSalesList(SaleState saleState) {
+    if (saleState is SalesLoadInProgress) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (saleState is SalesLoadFailure) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load sales',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              saleState.error,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (saleState is SalesLoadSuccess) {
+      final sales = saleState.sales;
+      
+      if (sales.isEmpty) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.receipt, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No sales today',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Take only the last 5 sales for recent activity
+      final recentSales = sales.take(5).toList();
+
+      return ListView.builder(
+        itemCount: recentSales.length,
+        itemBuilder: (context, index) {
+          final sale = recentSales[index];
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const Icon(Icons.receipt, color: Colors.blue),
+              title: Text(
+                sale.customerName ?? 'Walk-in Customer',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${sale.itemCount} item${sale.itemCount == 1 ? '' : 's'}'),
+                  Text(
+                    _formatDate(sale.dateTime),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              trailing: Text(
+                '₹${sale.totalAmount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return const Center(child: Text('Load sales to see activity'));
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final saleDay = DateTime(date.year, date.month, date.day);
+    
+    if (saleDay == today) {
+      return 'Today ${_formatTime(date)}';
+    } else {
+      return '${date.day}/${date.month}/${date.year} ${_formatTime(date)}';
+    }
+  }
+
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

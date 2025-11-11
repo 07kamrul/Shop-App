@@ -6,7 +6,6 @@ import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/report/report_bloc.dart';
 import '../../../../data/models/report_model.dart';
 import '../../../../core/utils/calculations.dart';
-import '../../../core/injection_container.dart';
 
 class SalesReportPage extends StatelessWidget {
   final DateTime startDate;
@@ -20,58 +19,95 @@ class SalesReportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! AuthAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Sales Report')),
+            body: const Center(child: Text('Please log in to view reports')),
+          );
+        }
 
-    return BlocProvider(
-      create: (context) => getIt<ReportBloc>()
-        ..add(
-          LoadDailySalesReport(
-            userId: user.id,
-            startDate: startDate,
-            endDate: endDate,
+        return BlocProvider(
+          create: (context) => ReportBloc()
+            ..add(
+              LoadDailySalesReport(
+                startDate: startDate,
+                endDate: endDate,
+              ),
+            ),
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Sales Report')),
+            body: BlocBuilder<ReportBloc, ReportState>(
+              builder: (context, state) {
+                if (state is ReportLoadInProgress) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (state is DailySalesReportLoaded) {
+                  final reports = state.reports;
+                  return _buildSalesReportContent(reports);
+                }
+
+                if (state is ReportLoadFailure) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load sales report',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          state.error,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<ReportBloc>().add(
+                              LoadDailySalesReport(
+                                startDate: startDate,
+                                endDate: endDate,
+                              ),
+                            );
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return const Center(child: Text('Load report to see data'));
+              },
+            ),
           ),
-        ),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Sales Report')),
-        body: BlocBuilder<ReportBloc, ReportState>(
-          builder: (context, state) {
-            if (state is ReportLoadInProgress) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is DailySalesReportLoaded) {
-              final reports = state.reports;
-              return _buildSalesReportContent(reports);
-            }
-
-            if (state is ReportLoadFailure) {
-              return Center(child: Text('Error: ${state.error}'));
-            }
-
-            return const Center(child: Text('Load report to see data'));
-          },
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildSalesReportContent(List<DailySalesReport> reports) {
-    final totalSales = reports.fold(
+    final totalSales = reports.fold<double>(
       0.0,
       (sum, report) => sum + report.totalSales,
     );
-    final totalProfit = reports.fold(
+    final totalProfit = reports.fold<double>(
       0.0,
       (sum, report) => sum + report.totalProfit,
     );
-    final totalTransactions = reports.fold(
+    final totalTransactions = reports.fold<int>(
       0,
       (sum, report) => sum + report.totalTransactions,
     );
 
-    // Fix: Ensure averageSale is explicitly cast to double
     final double averageSale = totalTransactions > 0
-        ? (totalSales / totalTransactions).toDouble()
+        ? totalSales / totalTransactions
         : 0.0;
 
     return Padding(
@@ -88,11 +124,17 @@ class SalesReportPage extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Sales Chart
-          Expanded(child: _buildSalesChart(reports)),
+          Expanded(
+            flex: 2,
+            child: _buildSalesChart(reports),
+          ),
 
           // Daily Breakdown
           const SizedBox(height: 20),
-          _buildDailyBreakdown(reports),
+          Expanded(
+            flex: 1,
+            child: _buildDailyBreakdown(reports),
+          ),
         ],
       ),
     );
@@ -146,6 +188,7 @@ class SalesReportPage extends StatelessWidget {
     IconData icon,
   ) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -162,13 +205,19 @@ class SalesReportPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),
@@ -178,35 +227,41 @@ class SalesReportPage extends StatelessWidget {
 
   Widget _buildSalesChart(List<DailySalesReport> reports) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Sales Trend',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
               child: SfCartesianChart(
-                primaryXAxis: DateTimeAxis(title: AxisTitle(text: 'Date')),
+                primaryXAxis: DateTimeAxis(
+                  title: const AxisTitle(text: 'Date'),
+                  dateFormat: DateFormat('MMM dd'),
+                ),
                 primaryYAxis: NumericAxis(
-                  title: AxisTitle(text: 'Amount (₹)'),
-                  // Fix: Use NumberFormat instead of String
+                  title: const AxisTitle(text: 'Amount (₹)'),
                   numberFormat: NumberFormat.currency(
                     symbol: '₹',
                     decimalDigits: 0,
                   ),
                 ),
-                legend: Legend(isVisible: true),
+                legend: const Legend(isVisible: true),
                 tooltipBehavior: TooltipBehavior(enable: true),
                 series: <CartesianSeries>[
                   LineSeries<DailySalesReport, DateTime>(
                     name: 'Sales',
                     dataSource: reports,
                     xValueMapper: (DailySalesReport report, _) => report.date,
-                    yValueMapper: (DailySalesReport report, _) =>
-                        report.totalSales,
+                    yValueMapper: (DailySalesReport report, _) => report.totalSales,
                     markerSettings: const MarkerSettings(isVisible: true),
                     color: Colors.blue,
                   ),
@@ -214,8 +269,7 @@ class SalesReportPage extends StatelessWidget {
                     name: 'Profit',
                     dataSource: reports,
                     xValueMapper: (DailySalesReport report, _) => report.date,
-                    yValueMapper: (DailySalesReport report, _) =>
-                        report.totalProfit,
+                    yValueMapper: (DailySalesReport report, _) => report.totalProfit,
                     markerSettings: const MarkerSettings(isVisible: true),
                     color: Colors.green,
                   ),
@@ -230,6 +284,7 @@ class SalesReportPage extends StatelessWidget {
 
   Widget _buildDailyBreakdown(List<DailySalesReport> reports) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -237,18 +292,27 @@ class SalesReportPage extends StatelessWidget {
           children: [
             const Text(
               'Daily Breakdown',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                itemCount: reports.length,
-                itemBuilder: (context, index) {
-                  final report = reports[index];
-                  return _buildDailyReportItem(report);
-                },
-              ),
+            Expanded(
+              child: reports.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No sales data available',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: reports.length,
+                      itemBuilder: (context, index) {
+                        final report = reports[index];
+                        return _buildDailyReportItem(report);
+                      },
+                    ),
             ),
           ],
         ),
@@ -263,6 +327,7 @@ class SalesReportPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Row(
         children: [
@@ -272,12 +337,26 @@ class SalesReportPage extends StatelessWidget {
               children: [
                 Text(
                   _formatDate(report.date),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${report.totalTransactions} transactions',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  '${report.totalTransactions} transaction${report.totalTransactions == 1 ? '' : 's'}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Margin: ${report.profitMargin.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
@@ -290,12 +369,17 @@ class SalesReportPage extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.blue,
+                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 Calculations.formatCurrency(report.totalProfit),
-                style: const TextStyle(fontSize: 12, color: Colors.green),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -305,6 +389,6 @@ class SalesReportPage extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return DateFormat('MMM dd, yyyy').format(date);
   }
 }

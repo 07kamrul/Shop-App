@@ -5,7 +5,6 @@ import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/report/report_bloc.dart';
 import '../../../../data/models/report_model.dart';
 import '../../../../core/utils/calculations.dart';
-import '../../../core/injection_container.dart';
 
 class TopProductsPage extends StatelessWidget {
   final DateTime startDate;
@@ -19,47 +18,85 @@ class TopProductsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        if (authState is! AuthAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Top Products')),
+            body: const Center(child: Text('Please log in to view reports')),
+          );
+        }
 
-    return BlocProvider(
-      create: (context) => getIt<ReportBloc>()
-        ..add(
-          LoadTopSellingProducts(
-            userId: user.id,
-            startDate: startDate,
-            endDate: endDate,
+        return BlocProvider(
+          create: (context) => ReportBloc()
+            ..add(
+              LoadTopSellingProducts(
+                startDate: startDate,
+                endDate: endDate,
+              ),
+            ),
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Top Products')),
+            body: BlocBuilder<ReportBloc, ReportState>(
+              builder: (context, state) {
+                if (state is ReportLoadInProgress) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (state is TopSellingProductsLoaded) {
+                  final products = state.products;
+                  return _buildTopProductsContent(products);
+                }
+
+                if (state is ReportLoadFailure) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Failed to load top products',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          state.error,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<ReportBloc>().add(
+                              LoadTopSellingProducts(
+                                startDate: startDate,
+                                endDate: endDate,
+                              ),
+                            );
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return const Center(child: Text('Load report to see data'));
+              },
+            ),
           ),
-        ),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Top Products')),
-        body: BlocBuilder<ReportBloc, ReportState>(
-          builder: (context, state) {
-            if (state is ReportLoadInProgress) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is TopSellingProductsLoaded) {
-              final products = state.products;
-              return _buildTopProductsContent(products);
-            }
-
-            if (state is ReportLoadFailure) {
-              return Center(child: Text('Error: ${state.error}'));
-            }
-
-            return const Center(child: Text('Load report to see data'));
-          },
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildTopProductsContent(List<ProductSales> products) {
-    final totalSales = products.fold(
+    final totalSales = products.fold<double>(
       0.0,
       (sum, product) => sum + product.totalSales,
     );
-    final totalProfit = products.fold(
+    final totalProfit = products.fold<double>(
       0.0,
       (sum, product) => sum + product.totalProfit,
     );
@@ -89,6 +126,7 @@ class TopProductsPage extends StatelessWidget {
     int productCount,
   ) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -97,66 +135,96 @@ class TopProductsPage extends StatelessWidget {
             _buildSummaryItem(
               'Total Sales',
               Calculations.formatCurrency(totalSales),
+              Colors.blue,
             ),
             _buildSummaryItem(
               'Total Profit',
               Calculations.formatCurrency(totalProfit),
+              Colors.green,
             ),
-            _buildSummaryItem('Products', productCount.toString()),
+            _buildSummaryItem(
+              'Products',
+              productCount.toString(),
+              Colors.orange,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryItem(String label, String value) {
+  Widget _buildSummaryItem(String label, String value, Color color) {
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: color,
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
       ],
     );
   }
 
   Widget _buildProductsChart(List<ProductSales> products) {
+    final topProducts = products.take(5).toList();
+    
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Top Products by Sales',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: SfCircularChart(
-                legend: Legend(
-                  isVisible: true,
-                  overflowMode: LegendItemOverflowMode.wrap,
-                ),
-                tooltipBehavior: TooltipBehavior(enable: true),
-                series: <CircularSeries>[
-                  DoughnutSeries<ProductSales, String>(
-                    dataSource: products.take(5).toList(),
-                    xValueMapper: (ProductSales sales, _) => sales.productName,
-                    yValueMapper: (ProductSales sales, _) => sales.totalSales,
-                    dataLabelSettings: const DataLabelSettings(
-                      isVisible: true,
-                      labelPosition: ChartDataLabelPosition.outside,
+              child: topProducts.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No product data available',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : SfCircularChart(
+                      legend: const Legend(
+                        isVisible: true,
+                        overflowMode: LegendItemOverflowMode.wrap,
+                        position: LegendPosition.bottom,
+                      ),
+                      tooltipBehavior: TooltipBehavior(
+                        enable: true,
+                        format: 'point.x : ₹point.y',
+                      ),
+                      series: <CircularSeries>[
+                        DoughnutSeries<ProductSales, String>(
+                          dataSource: topProducts,
+                          xValueMapper: (ProductSales sales, _) => sales.productName,
+                          yValueMapper: (ProductSales sales, _) => sales.totalSales,
+                          dataLabelMapper: (ProductSales sales, _) =>
+                              '${sales.productName}\n₹${sales.totalSales.toStringAsFixed(0)}',
+                          dataLabelSettings: const DataLabelSettings(
+                            isVisible: true,
+                            labelPosition: ChartDataLabelPosition.outside,
+                            textStyle: TextStyle(fontSize: 10),
+                          ),
+                          enableTooltip: true,
+                        ),
+                      ],
                     ),
-                    enableTooltip: true,
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -166,6 +234,7 @@ class TopProductsPage extends StatelessWidget {
 
   Widget _buildProductsList(List<ProductSales> products) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -173,17 +242,27 @@ class TopProductsPage extends StatelessWidget {
           children: [
             const Text(
               'Product Performance',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.builder(
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return _buildProductItem(product, index + 1);
-                },
-              ),
+              child: products.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No products found',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return _buildProductItem(product, index + 1);
+                      },
+                    ),
             ),
           ],
         ),
@@ -198,6 +277,7 @@ class TopProductsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Row(
         children: [
@@ -226,13 +306,21 @@ class TopProductsPage extends StatelessWidget {
               children: [
                 Text(
                   product.productName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${product.quantitySold} units sold',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Margin: ${product.profitMargin.toStringAsFixed(1)}%',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
@@ -246,12 +334,25 @@ class TopProductsPage extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.blue,
+                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 Calculations.formatCurrency(product.totalProfit),
-                style: const TextStyle(fontSize: 12, color: Colors.green),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.green[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '₹${product.profitPerUnit.toStringAsFixed(2)}/unit',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[600],
+                ),
               ),
             ],
           ),
@@ -263,13 +364,13 @@ class TopProductsPage extends StatelessWidget {
   Color _getRankColor(int rank) {
     switch (rank) {
       case 1:
-        return Colors.amber;
+        return const Color(0xFFFFD700); // Gold
       case 2:
-        return Colors.grey;
+        return const Color(0xFFC0C0C0); // Silver
       case 3:
-        return Colors.brown;
+        return const Color(0xFFCD7F32); // Bronze
       default:
-        return Colors.blue;
+        return Colors.blue.shade400;
     }
   }
 }

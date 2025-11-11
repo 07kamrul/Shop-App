@@ -8,36 +8,30 @@ abstract class SaleEvent extends Equatable {
 }
 
 class LoadSales extends SaleEvent {
-  final String userId;
-
-  const LoadSales({required this.userId});
+  const LoadSales();
 
   @override
-  List<Object> get props => [userId];
+  List<Object> get props => [];
 }
 
 class LoadSalesByDateRange extends SaleEvent {
-  final String userId;
   final DateTime startDate;
   final DateTime endDate;
 
   const LoadSalesByDateRange({
-    required this.userId,
     required this.startDate,
     required this.endDate,
   });
 
   @override
-  List<Object> get props => [userId, startDate, endDate];
+  List<Object> get props => [startDate, endDate];
 }
 
 class LoadTodaySales extends SaleEvent {
-  final String userId;
-
-  const LoadTodaySales({required this.userId});
+  const LoadTodaySales();
 
   @override
-  List<Object> get props => [userId];
+  List<Object> get props => [];
 }
 
 class AddSale extends SaleEvent {
@@ -50,10 +44,10 @@ class AddSale extends SaleEvent {
 }
 
 class DeleteSale extends SaleEvent {
-  final Sale sale;
+  final String saleId;
 
-  const DeleteSale({required this.sale});
+  const DeleteSale({required this.saleId});
 
   @override
-  List<Object> get props => [sale];
+  List<Object> get props => [saleId];
 }

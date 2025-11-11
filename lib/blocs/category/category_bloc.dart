@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/services/category_service.dart';
 
 part 'category_event.dart';
@@ -30,6 +31,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     AddCategory event,
     Emitter<CategoryState> emit,
   ) async {
+    emit(CategoryOperationInProgress());
     try {
       await CategoryService.createCategory(
         name: event.category['name'],
@@ -38,8 +40,10 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
         profitMarginTarget: event.category['profitMarginTarget'],
       );
 
+      emit(CategoryOperationSuccess());
+      
       // Reload categories after adding
-      add(LoadCategories(userId: event.category['userId']));
+      add(LoadCategories());
     } catch (e) {
       emit(CategoryOperationFailure(error: e.toString()));
     }
@@ -49,6 +53,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     UpdateCategory event,
     Emitter<CategoryState> emit,
   ) async {
+    emit(CategoryOperationInProgress());
     try {
       await CategoryService.updateCategory(
         id: event.category['id'],
@@ -58,8 +63,10 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
         profitMarginTarget: event.category['profitMarginTarget'],
       );
 
+      emit(CategoryOperationSuccess());
+      
       // Reload categories after updating
-      add(LoadCategories(userId: event.category['userId']));
+      add(LoadCategories());
     } catch (e) {
       emit(CategoryOperationFailure(error: e.toString()));
     }
@@ -69,10 +76,13 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     DeleteCategory event,
     Emitter<CategoryState> emit,
   ) async {
+    emit(CategoryOperationInProgress());
     try {
       await CategoryService.deleteCategory(event.categoryId);
+      
+      emit(CategoryOperationSuccess());
+      
       // Reload categories after deletion
-      // You might need to pass userId here if you have it available
       add(const LoadCategories());
     } catch (e) {
       emit(CategoryOperationFailure(error: e.toString()));

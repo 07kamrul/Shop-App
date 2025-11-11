@@ -13,6 +13,7 @@ class Product extends Equatable {
   final String? supplierId;
   final String? supplierName;
   final DateTime createdAt;
+  final String createdBy;
   final DateTime updatedAt;
   final bool isActive;
 
@@ -29,6 +30,7 @@ class Product extends Equatable {
     this.supplierId,
     this.supplierName,
     required this.createdAt,
+    required this.createdBy,
     required this.updatedAt,
     this.isActive = true,
   });
@@ -58,6 +60,7 @@ class Product extends Equatable {
       createdAt: DateTime.parse(
         json['createdAt'] ?? DateTime.now().toIso8601String(),
       ),
+      createdBy: json['createdBy'] ?? '',
       updatedAt: DateTime.parse(
         json['updatedAt'] ?? DateTime.now().toIso8601String(),
       ),
@@ -80,6 +83,7 @@ class Product extends Equatable {
       'supplierId': supplierId,
       'supplierName': supplierName,
       'createdAt': createdAt.toIso8601String(),
+      'createdBy': createdBy,
       'updatedAt': updatedAt.toIso8601String(),
       'isActive': isActive,
     };
@@ -97,6 +101,7 @@ class Product extends Equatable {
     int minStockLevel = 10,
     String? supplierId,
     String? supplierName,
+    required String createdBy,
   }) {
     final now = DateTime.now();
     return Product(
@@ -111,6 +116,7 @@ class Product extends Equatable {
       supplierId: supplierId,
       supplierName: supplierName,
       createdAt: now,
+      createdBy: createdBy,
       updatedAt: now,
       isActive: true,
     );
@@ -131,6 +137,7 @@ class Product extends Equatable {
       'supplierId': supplierId,
       'supplierName': supplierName,
       'createdAt': now.toIso8601String(),
+      'createdBy': createdBy,
       'updatedAt': now.toIso8601String(),
       'isActive': isActive,
     };
@@ -149,6 +156,7 @@ class Product extends Equatable {
       'minStockLevel': minStockLevel,
       'supplierId': supplierId,
       'supplierName': supplierName,
+      'createdBy': createdBy,
       'updatedAt': DateTime.now().toIso8601String(),
       'isActive': isActive,
     };
@@ -171,6 +179,7 @@ class Product extends Equatable {
     if (supplierId != null) jsonMap['supplierId'] = supplierId;
     if (supplierName != null) jsonMap['supplierName'] = supplierName;
 
+    jsonMap['createdBy'] = createdBy;
     jsonMap['updatedAt'] = DateTime.now().toIso8601String();
     jsonMap['isActive'] = isActive;
 
@@ -181,6 +190,7 @@ class Product extends Equatable {
   Map<String, dynamic> toStockUpdateJson() {
     return {
       'currentStock': currentStock,
+      'createdBy': createdBy,
       'updatedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -190,6 +200,7 @@ class Product extends Equatable {
     return {
       'buyingPrice': buyingPrice,
       'sellingPrice': sellingPrice,
+      'createdBy': createdBy,
       'updatedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -199,7 +210,8 @@ class Product extends Equatable {
     return name.isNotEmpty &&
         categoryId.isNotEmpty &&
         buyingPrice >= 0 &&
-        sellingPrice >= buyingPrice;
+        sellingPrice >= buyingPrice &&
+        createdBy.isNotEmpty;
   }
 
   bool get isValidForUpdate {
@@ -227,6 +239,28 @@ class Product extends Equatable {
     return copyWith(buyingPrice: newBuyingPrice, sellingPrice: newSellingPrice);
   }
 
+  Product deactivate() {
+    return copyWith(isActive: false);
+  }
+
+  Product activate() {
+    return copyWith(isActive: true);
+  }
+
+  Product updateCategory(String newCategoryId, String newCategoryName) {
+    return copyWith(
+      categoryId: newCategoryId,
+      categoryName: newCategoryName,
+    );
+  }
+
+  Product updateSupplier(String? newSupplierId, String? newSupplierName) {
+    return copyWith(
+      supplierId: newSupplierId,
+      supplierName: newSupplierName,
+    );
+  }
+
   Product copyWith({
     String? id,
     String? name,
@@ -240,6 +274,7 @@ class Product extends Equatable {
     String? supplierId,
     String? supplierName,
     DateTime? createdAt,
+    String? createdBy,
     DateTime? updatedAt,
     bool? isActive,
   }) {
@@ -256,6 +291,7 @@ class Product extends Equatable {
       supplierId: supplierId ?? this.supplierId,
       supplierName: supplierName ?? this.supplierName,
       createdAt: createdAt ?? this.createdAt,
+      createdBy: createdBy ?? this.createdBy,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
     );
@@ -263,19 +299,20 @@ class Product extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    name,
-    barcode,
-    categoryId,
-    categoryName,
-    buyingPrice,
-    sellingPrice,
-    currentStock,
-    minStockLevel,
-    supplierId,
-    supplierName,
-    createdAt,
-    updatedAt,
-    isActive,
-  ];
+        id,
+        name,
+        barcode,
+        categoryId,
+        categoryName,
+        buyingPrice,
+        sellingPrice,
+        currentStock,
+        minStockLevel,
+        supplierId,
+        supplierName,
+        createdAt,
+        createdBy,
+        updatedAt,
+        isActive,
+      ];
 }

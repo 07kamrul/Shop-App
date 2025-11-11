@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shop/core/utils/barcode_scanner.dart';
+import 'package:shop_management/core/utils/barcode_scanner.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/category/category_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
@@ -28,12 +28,16 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCategories();
+    });
   }
 
   void _loadCategories() {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
-    context.read<CategoryBloc>().add(LoadCategories(userId: user['id']));
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<CategoryBloc>().add(const LoadCategories());
+    }
   }
 
   void _scanBarcode() async {
@@ -169,12 +173,46 @@ class _AddProductPageState extends State<AddProductPage> {
               const SizedBox(height: 32),
               _buildProfitPreview(),
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _saveProduct,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('Save Product'),
+              BlocConsumer<ProductBloc, ProductState>(
+                listener: (context, state) {
+                  if (state is ProductOperationFailure) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: ${state.error}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } else if (state is ProductsLoadSuccess) {
+                    // Product was added successfully and products reloaded
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Product added successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                },
+                builder: (context, state) {
+                  return ElevatedButton(
+                    onPressed: state is ProductOperationInProgress
+                        ? null
+                        : _saveProduct,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: state is ProductOperationInProgress
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Save Product'),
+                  );
+                },
               ),
             ],
           ),
@@ -221,6 +259,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 ElevatedButton(
                   onPressed: () {
                     // Navigate to add category page
+                    // Navigator.push(context, MaterialPageRoute(builder: (context) => AddCategoryPage()));
                   },
                   child: const Text('Add Category First'),
                 ),
@@ -236,9 +275,16 @@ class _AddProductPageState extends State<AddProductPage> {
               prefixIcon: Icon(Icons.category),
             ),
             items: _categories.map((category) {
+              final categoryId = category is Map<String, dynamic> 
+                  ? category['id'] ?? category['_id']
+                  : category.id;
+              final categoryName = category is Map<String, dynamic>
+                  ? category['name']
+                  : category.name;
+
               return DropdownMenuItem<String>(
-                value: category['id'],
-                child: Text(category['name']),
+                value: categoryId?.toString(),
+                child: Text(categoryName?.toString() ?? 'Unknown Category'),
               );
             }).toList(),
             onChanged: (value) {
@@ -313,10 +359,10 @@ class _AddProductPageState extends State<AddProductPage> {
   void _saveProduct() {
     if (_formKey.currentState!.validate() && _selectedCategoryId != null) {
       final productData = {
-        'name': _nameController.text,
+        'name': _nameController.text.trim(),
         'barcode': _barcodeController.text.isEmpty
             ? null
-            : _barcodeController.text,
+            : _barcodeController.text.trim(),
         'categoryId': _selectedCategoryId!,
         'buyingPrice': double.parse(_buyingPriceController.text),
         'sellingPrice': double.parse(_sellingPriceController.text),
@@ -326,14 +372,6 @@ class _AddProductPageState extends State<AddProductPage> {
 
       context.read<ProductBloc>().add(AddProduct(product: productData));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product added successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context);
     } else if (_selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

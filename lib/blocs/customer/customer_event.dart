@@ -8,22 +8,19 @@ abstract class CustomerEvent extends Equatable {
 }
 
 class LoadCustomers extends CustomerEvent {
-  final String userId;
-
-  const LoadCustomers({required this.userId});
+  const LoadCustomers();
 
   @override
-  List<Object> get props => [userId];
+  List<Object> get props => [];
 }
 
 class SearchCustomers extends CustomerEvent {
-  final String userId;
   final String query;
 
-  const SearchCustomers({required this.userId, required this.query});
+  const SearchCustomers({required this.query});
 
   @override
-  List<Object> get props => [userId, query];
+  List<Object> get props => [query];
 }
 
 class AddCustomer extends CustomerEvent {
@@ -54,11 +51,10 @@ class DeleteCustomer extends CustomerEvent {
 }
 
 class LoadTopCustomers extends CustomerEvent {
-  final String userId;
   final int limit;
 
-  const LoadTopCustomers({required this.userId, this.limit = 10});
+  const LoadTopCustomers({this.limit = 10});
 
   @override
-  List<Object> get props => [userId, limit];
+  List<Object> get props => [limit];
 }

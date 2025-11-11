@@ -11,18 +11,14 @@ class SaleInitial extends SaleState {}
 
 class SalesLoadInProgress extends SaleState {}
 
-class SaleOperationInProgress extends SaleState {}
-
 class SalesLoadSuccess extends SaleState {
-  final Stream<List<Sale>> salesStream;
+  final List<Sale> sales;
 
-  const SalesLoadSuccess({required this.salesStream});
+  const SalesLoadSuccess({required this.sales});
 
   @override
-  List<Object> get props => [salesStream];
+  List<Object> get props => [sales];
 }
-
-class SaleOperationSuccess extends SaleState {}
 
 class SalesLoadFailure extends SaleState {
   final String error;
@@ -32,6 +28,10 @@ class SalesLoadFailure extends SaleState {
   @override
   List<Object> get props => [error];
 }
+
+class SaleOperationInProgress extends SaleState {}
+
+class SaleOperationSuccess extends SaleState {}
 
 class SaleOperationFailure extends SaleState {
   final String error;

@@ -41,9 +41,21 @@ class ExportDialog extends StatelessWidget {
       _showLoadingDialog(context, 'Exporting Sales Data...');
 
       try {
-        // Get current sales data from stream
-        final salesSnapshot = await saleState.salesStream.first;
-        final data = ExportUtils.prepareSalesData(salesSnapshot);
+        // Check storage permission
+        final permissionStatus = await Permission.storage.request();
+        if (!permissionStatus.isGranted) {
+          Navigator.pop(context); // Close loading dialog
+          _showExportResult(
+            context,
+            false,
+            'Storage permission is required to export files.',
+          );
+          return;
+        }
+
+        // Get sales data directly from state
+        final sales = saleState.sales;
+        final data = ExportUtils.prepareSalesData(sales);
 
         final filePath = await ExportUtils.exportToCSVSimple(
           data: data,
@@ -72,9 +84,21 @@ class ExportDialog extends StatelessWidget {
       _showLoadingDialog(context, 'Exporting Products Data...');
 
       try {
-        // Get current products data from stream
-        final productsSnapshot = await productState.productsStream.first;
-        final data = ExportUtils.prepareProductsData(productsSnapshot);
+        // Check storage permission
+        final permissionStatus = await Permission.storage.request();
+        if (!permissionStatus.isGranted) {
+          Navigator.pop(context); // Close loading dialog
+          _showExportResult(
+            context,
+            false,
+            'Storage permission is required to export files.',
+          );
+          return;
+        }
+
+        // Get products data directly from state
+        final products = productState.products;
+        final data = ExportUtils.prepareProductsData(products);
 
         final filePath = await ExportUtils.exportToCSVSimple(
           data: data,
@@ -103,9 +127,21 @@ class ExportDialog extends StatelessWidget {
       _showLoadingDialog(context, 'Exporting Inventory Data...');
 
       try {
-        // Get current products data from stream
-        final productsSnapshot = await productState.productsStream.first;
-        final data = ExportUtils.prepareInventoryData(productsSnapshot);
+        // Check storage permission
+        final permissionStatus = await Permission.storage.request();
+        if (!permissionStatus.isGranted) {
+          Navigator.pop(context); // Close loading dialog
+          _showExportResult(
+            context,
+            false,
+            'Storage permission is required to export files.',
+          );
+          return;
+        }
+
+        // Get products data directly from state
+        final products = productState.products;
+        final data = ExportUtils.prepareInventoryData(products);
 
         final filePath = await ExportUtils.exportToCSVSimple(
           data: data,
@@ -144,12 +180,18 @@ class ExportDialog extends StatelessWidget {
   }
 
   void _showExportResult(BuildContext context, bool success, String message) {
-    Navigator.pop(context); // Close export dialog
+    // Close the loading dialog if it's still open
+    Navigator.pop(context);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(success ? 'Export Successful' : 'Export Failed'),
+        icon: Icon(
+          success ? Icons.check_circle : Icons.error,
+          color: success ? Colors.green : Colors.red,
+          size: 48,
+        ),
         content: Text(
           success
               ? 'Data exported successfully!\n\nFile location: $message'
@@ -164,6 +206,7 @@ class ExportDialog extends StatelessWidget {
             TextButton(
               onPressed: () {
                 // You could add share functionality here
+                // For now, just close the dialog
                 Navigator.pop(context);
               },
               child: const Text('Share'),

@@ -8,22 +8,19 @@ abstract class SupplierEvent extends Equatable {
 }
 
 class LoadSuppliers extends SupplierEvent {
-  final String userId;
-
-  const LoadSuppliers({required this.userId});
+  const LoadSuppliers();
 
   @override
-  List<Object> get props => [userId];
+  List<Object> get props => [];
 }
 
 class SearchSuppliers extends SupplierEvent {
-  final String userId;
   final String query;
 
-  const SearchSuppliers({required this.userId, required this.query});
+  const SearchSuppliers({required this.query});
 
   @override
-  List<Object> get props => [userId, query];
+  List<Object> get props => [query];
 }
 
 class AddSupplier extends SupplierEvent {
@@ -54,11 +51,10 @@ class DeleteSupplier extends SupplierEvent {
 }
 
 class LoadTopSuppliers extends SupplierEvent {
-  final String userId;
   final int limit;
 
-  const LoadTopSuppliers({required this.userId, this.limit = 10});
+  const LoadTopSuppliers({this.limit = 10});
 
   @override
-  List<Object> get props => [userId, limit];
+  List<Object> get props => [limit];
 }

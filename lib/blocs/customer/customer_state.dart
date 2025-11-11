@@ -12,15 +12,13 @@ class CustomerInitial extends CustomerState {}
 class CustomersLoadInProgress extends CustomerState {}
 
 class CustomersLoadSuccess extends CustomerState {
-  final Stream<List<Customer>> customersStream;
+  final List<Customer> customers;
 
-  const CustomersLoadSuccess({required this.customersStream});
+  const CustomersLoadSuccess({required this.customers});
 
   @override
-  List<Object> get props => [customersStream];
+  List<Object> get props => [customers];
 }
-
-class CustomerOperationSuccess extends CustomerState {}
 
 class CustomersLoadFailure extends CustomerState {
   final String error;
@@ -30,6 +28,10 @@ class CustomersLoadFailure extends CustomerState {
   @override
   List<Object> get props => [error];
 }
+
+class CustomerOperationInProgress extends CustomerState {}
+
+class CustomerOperationSuccess extends CustomerState {}
 
 class CustomerOperationFailure extends CustomerState {
   final String error;

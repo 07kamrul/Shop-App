@@ -30,6 +30,10 @@ class CategoriesLoadFailure extends CategoryState {
   List<Object?> get props => [error];
 }
 
+class CategoryOperationInProgress extends CategoryState {}
+
+class CategoryOperationSuccess extends CategoryState {}
+
 class CategoryOperationFailure extends CategoryState {
   final String error;
 
@@ -38,5 +42,3 @@ class CategoryOperationFailure extends CategoryState {
   @override
   List<Object?> get props => [error];
 }
-
-class CategoryOperationSuccess extends CategoryState {}

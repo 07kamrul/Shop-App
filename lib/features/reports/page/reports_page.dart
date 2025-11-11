@@ -238,13 +238,4 @@ class _ReportsPageState extends State<ReportsPage> {
     }
   }
 
-  void _loadTopProducts(String userId) {
-    context.read<ReportBloc>().add(
-      LoadTopSellingProducts(
-        userId: userId,
-        startDate: _startDate,
-        endDate: _endDate,
-      ),
-    );
-  }
 }

@@ -20,8 +20,6 @@ class ProductsLoadSuccess extends ProductState {
   List<Object> get props => [products];
 }
 
-class ProductOperationSuccess extends ProductState {}
-
 class ProductsLoadFailure extends ProductState {
   final String error;
 
@@ -30,6 +28,10 @@ class ProductsLoadFailure extends ProductState {
   @override
   List<Object> get props => [error];
 }
+
+class ProductOperationInProgress extends ProductState {}
+
+class ProductOperationSuccess extends ProductState {}
 
 class ProductOperationFailure extends ProductState {
   final String error;

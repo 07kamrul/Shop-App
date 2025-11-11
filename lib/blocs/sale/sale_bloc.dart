@@ -1,15 +1,13 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../core/services/sale_service.dart';
 import '../../data/models/sale_model.dart';
-import '../../data/repositories/sale_repository.dart';
 
 part 'sale_event.dart';
 part 'sale_state.dart';
 
 class SaleBloc extends Bloc<SaleEvent, SaleState> {
-  final SaleRepository saleRepository;
-
-  SaleBloc({required this.saleRepository}) : super(SaleInitial()) {
+  SaleBloc() : super(SaleInitial()) {
     on<LoadSales>(_onLoadSales);
     on<LoadSalesByDateRange>(_onLoadSalesByDateRange);
     on<LoadTodaySales>(_onLoadTodaySales);
@@ -17,58 +15,82 @@ class SaleBloc extends Bloc<SaleEvent, SaleState> {
     on<DeleteSale>(_onDeleteSale);
   }
 
-  void _onLoadSales(LoadSales event, Emitter<SaleState> emit) {
+  Future<void> _onLoadSales(
+    LoadSales event,
+    Emitter<SaleState> emit,
+  ) async {
     emit(SalesLoadInProgress());
     try {
-      final salesStream = saleRepository.getSales(event.userId);
-      emit(SalesLoadSuccess(salesStream: salesStream));
+      final salesData = await SaleService.getSales();
+      final sales = salesData.map((data) => Sale.fromJson(data)).toList();
+      emit(SalesLoadSuccess(sales: sales));
     } catch (e) {
       emit(SalesLoadFailure(error: e.toString()));
     }
   }
 
-  void _onLoadSalesByDateRange(
+  Future<void> _onLoadSalesByDateRange(
     LoadSalesByDateRange event,
     Emitter<SaleState> emit,
-  ) {
+  ) async {
     emit(SalesLoadInProgress());
     try {
-      final salesStream = saleRepository.getSalesByDateRange(
-        event.userId,
-        event.startDate,
-        event.endDate,
+      final salesData = await SaleService.getSales(
+        startDate: event.startDate,
+        endDate: event.endDate,
       );
-      emit(SalesLoadSuccess(salesStream: salesStream));
+      final sales = salesData.map((data) => Sale.fromJson(data)).toList();
+      emit(SalesLoadSuccess(sales: sales));
     } catch (e) {
       emit(SalesLoadFailure(error: e.toString()));
     }
   }
 
-  void _onLoadTodaySales(LoadTodaySales event, Emitter<SaleState> emit) {
+  Future<void> _onLoadTodaySales(
+    LoadTodaySales event,
+    Emitter<SaleState> emit,
+  ) async {
     emit(SalesLoadInProgress());
     try {
-      final salesStream = saleRepository.getTodaySales(event.userId);
-      emit(SalesLoadSuccess(salesStream: salesStream));
+      final salesData = await SaleService.getTodaySales();
+      final sales = salesData.map((data) => Sale.fromJson(data)).toList();
+      emit(SalesLoadSuccess(sales: sales));
     } catch (e) {
       emit(SalesLoadFailure(error: e.toString()));
     }
   }
 
-  Future<void> _onAddSale(AddSale event, Emitter<SaleState> emit) async {
+  Future<void> _onAddSale(
+    AddSale event,
+    Emitter<SaleState> emit,
+  ) async {
     emit(SaleOperationInProgress());
     try {
-      await saleRepository.addSale(event.sale);
-      emit(SaleOperationSuccess());
+      await SaleService.createSale(
+        customerId: event.sale.customerId,
+        customerName: event.sale.customerName,
+        customerPhone: event.sale.customerPhone,
+        paymentMethod: event.sale.paymentMethod,
+        items: event.sale.items.map((item) => item.toJson()).toList(),
+      );
+
+      // Reload sales after adding
+      add(const LoadSales());
     } catch (e) {
       emit(SaleOperationFailure(error: e.toString()));
     }
   }
 
-  Future<void> _onDeleteSale(DeleteSale event, Emitter<SaleState> emit) async {
+  Future<void> _onDeleteSale(
+    DeleteSale event,
+    Emitter<SaleState> emit,
+  ) async {
     emit(SaleOperationInProgress());
     try {
-      await saleRepository.deleteSale(event.sale);
-      emit(SaleOperationSuccess());
+      await SaleService.deleteSale(event.saleId);
+      
+      // Reload sales after deletion
+      add(const LoadSales());
     } catch (e) {
       emit(SaleOperationFailure(error: e.toString()));
     }

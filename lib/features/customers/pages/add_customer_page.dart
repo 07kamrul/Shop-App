@@ -105,6 +105,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         lastPurchaseDate: DateTime.now(),
         createdAt: DateTime.now(),
         createdBy: userId,
+        updatedAt: DateTime.now(),
       );
 
       context.read<CustomerBloc>().add(AddCustomer(customer: customer));

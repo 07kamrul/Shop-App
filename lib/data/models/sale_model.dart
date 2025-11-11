@@ -75,6 +75,7 @@ class Sale extends Equatable {
   final DateTime dateTime;
   final DateTime updatedAt;
   final List<SaleItem> items;
+  final String? customerId;
   final String? customerName;
   final String? customerPhone;
   final String paymentMethod;
@@ -90,6 +91,7 @@ class Sale extends Equatable {
     required this.dateTime,
     required this.updatedAt,
     required this.items,
+    this.customerId,
     this.customerName,
     this.customerPhone,
     required this.paymentMethod,

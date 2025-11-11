@@ -135,7 +135,7 @@ class _AuthFormState extends State<AuthForm> {
             password: _passwordController.text,
             name: _nameController.text,
             shopName: _shopNameController.text,
-            phone: _phoneController.text.isEmpty ? null : _phoneController.text,
+            phone: _phoneController.text.isEmpty ? '' : _phoneController.text,
           ),
         );
       }
