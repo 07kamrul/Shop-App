@@ -1,3 +1,5 @@
+// lib/features/auth/widgets/auth_form.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
@@ -5,7 +7,6 @@ import '../../../../core/utils/validators.dart';
 
 class AuthForm extends StatefulWidget {
   final bool isLogin;
-
   const AuthForm({super.key, required this.isLogin});
 
   @override
@@ -20,122 +21,219 @@ class _AuthFormState extends State<AuthForm> {
   final _shopNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthLoading) {
-          setState(() => _isLoading = true);
+    return WillPopScope(
+      onWillPop: () async {
+        if (widget.isLogin) {
+          return true; // Allow normal back (exit app or previous screen)
         } else {
-          setState(() => _isLoading = false);
+          // On Register → go back to Login instead of exiting
+          Navigator.of(context).pushReplacementNamed('/login');
+          return false;
         }
       },
-      builder: (context, state) {
-        return Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              if (!widget.isLogin) ...[
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
+      child: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          // Show Error
+          if (state is AuthError) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.error),
+                  backgroundColor: Colors.red.shade600,
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  validator: Validators.validateName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _shopNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Shop Name',
-                    prefixIcon: Icon(Icons.store),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: Validators.validateName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number (Optional)',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-              ],
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: Validators.validateEmail,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
+                  action: SnackBarAction(
+                    label: 'Dismiss',
+                    textColor: Colors.white,
                     onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     },
                   ),
                 ),
-                obscureText: _obscurePassword,
-                validator: Validators.validatePassword,
+              );
+          }
+          // Success → Go to Home
+          else if (state is AuthAuthenticated) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (route) => false);
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+
+          return Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Registration Only Fields
+                  if (!widget.isLogin) ...[
+                    _buildTextField(
+                      controller: _nameController,
+                      label: 'Full Name',
+                      icon: Icons.person,
+                      validator: Validators.validateName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _shopNameController,
+                      label: 'Shop Name',
+                      icon: Icons.store,
+                      validator: Validators.validateName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number (Optional)',
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Email
+                  _buildTextField(
+                    controller: _emailController,
+                    label: 'Email',
+                    icon: Icons.email,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: Validators.validateEmail,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: Validators.validatePassword,
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : Text(
+                              widget.isLogin ? 'Login' : 'Create Account',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  // Back to Login Link (Only on Register)
+                  if (!widget.isLogin)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: TextButton(
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushReplacementNamed('/login'),
+                        child: const Text(
+                          'Already have an account? Login',
+                          style: TextStyle(color: Colors.blue, fontSize: 15),
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 20),
+                ],
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitForm,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : Text(widget.isLogin ? 'Login' : 'Create Account'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Reusable TextFormField
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: const OutlineInputBorder(),
+      ),
+      validator: validator,
     );
   }
 
   void _submitForm() {
+    FocusScope.of(context).unfocus(); // Hide keyboard
+
     if (_formKey.currentState!.validate()) {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
       if (widget.isLogin) {
         context.read<AuthBloc>().add(
-          AuthSignInRequested(
-            email: _emailController.text,
-            password: _passwordController.text,
-          ),
+          AuthSignInRequested(email: email, password: password),
         );
       } else {
         context.read<AuthBloc>().add(
           AuthSignUpRequested(
-            email: _emailController.text,
-            password: _passwordController.text,
-            name: _nameController.text,
-            shopName: _shopNameController.text,
-            phone: _phoneController.text.isEmpty ? '' : _phoneController.text,
+            email: email,
+            password: password,
+            name: _nameController.text.trim(),
+            shopName: _shopNameController.text.trim(),
+            phone: _phoneController.text.trim().isEmpty
+                ? null
+                : _phoneController.text.trim(),
           ),
         );
       }

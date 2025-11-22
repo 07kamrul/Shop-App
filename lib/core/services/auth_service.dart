@@ -21,15 +21,28 @@ class AuthService {
 
       final response = await ApiService.post('/auth/register', data);
 
-      // Save token and user data
       if (response['token'] != null) {
         await _saveAuthData(response);
       }
 
       return response;
+    } on ApiException catch (e) {
+      // Extract only the clean message from backend
+      String cleanMessage = e.message;
+
+      // Optional: Make common messages more user-friendly
+      if (cleanMessage.toLowerCase().contains('already exists')) {
+        cleanMessage = 'User with this email already exists.';
+      } else if (e.statusCode == 0) {
+        cleanMessage = 'No internet connection.';
+      } else if (e.statusCode >= 500) {
+        cleanMessage = 'Server error. Please try again later.';
+      }
+
+      // Throw only the clean message — no technical junk
+      throw Exception(cleanMessage);
     } catch (e) {
-      // Re-throw with more context
-      throw Exception('Registration failed: $e');
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -58,7 +71,9 @@ class AuthService {
   // Refresh token
   static Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
     try {
-      final response = await ApiService.post('/auth/refresh-token', {'refreshToken': refreshToken});
+      final response = await ApiService.post('/auth/refresh-token', {
+        'refreshToken': refreshToken,
+      });
 
       // Update token
       if (response['token'] != null) {

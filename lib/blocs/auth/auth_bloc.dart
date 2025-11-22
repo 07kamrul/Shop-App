@@ -29,14 +29,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         phone: event.phone,
       );
 
-      // Handle both Map and User object responses
       final User user = response is User
           ? response as User
           : User.fromJson(response as Map<String, dynamic>);
 
       emit(AuthAuthenticated(user: user));
     } catch (e) {
-      emit(AuthError(error: e.toString()));
+      emit(AuthError(error: e.toString())); // Already clean from above
     }
   }
 

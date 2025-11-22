@@ -1,7 +1,9 @@
+// main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'blocs/auth/auth_bloc.dart';
 import 'features/auth/pages/login_page.dart';
+import 'features/auth/pages/register_page.dart'; // ← Add this
 import 'features/dashboard/pages/dashboard_page.dart';
 
 void main() async {
@@ -22,25 +24,30 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Shop Management',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is AuthAuthenticated) {
-              return const DashboardPage();
-            } else if (state is AuthUnauthenticated) {
-              return const LoginPage();
-            } else {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-          },
-        ),
-        debugShowCheckedModeBanner: false,
+
+        // Define all your named routes here
+        routes: {
+          '/login': (context) => const LoginPage(),
+          '/register': (context) => const RegisterPage(),
+          '/home': (context) => const DashboardPage(),
+        },
+
+        // Initial route
+        initialRoute: '/login',
+
+        // Optional: Fallback if route not found
+        onUnknownRoute: (settings) {
+          return MaterialPageRoute(
+            builder: (context) =>
+                const Scaffold(body: Center(child: Text('Page Not Found'))),
+          );
+        },
       ),
     );
   }

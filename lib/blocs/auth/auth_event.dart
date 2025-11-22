@@ -13,14 +13,14 @@ class AuthSignUpRequested extends AuthEvent {
   final String password;
   final String name;
   final String shopName;
-  final String phone;
+  final String? phone;
 
   const AuthSignUpRequested({
     required this.email,
     required this.password,
     required this.name,
     required this.shopName,
-    required this.phone,
+    this.phone,
   });
 
   @override

@@ -9,6 +9,7 @@ class RegisterPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true, // ← Add this line
       appBar: AppBar(
         title: const Text('Create Account'),
         leading: IconButton(
