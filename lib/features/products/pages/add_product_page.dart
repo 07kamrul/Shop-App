@@ -173,49 +173,8 @@ class _AddProductPageState extends State<AddProductPage> {
               const SizedBox(height: 32),
               _buildProfitPreview(),
               const SizedBox(height: 32),
-              BlocConsumer<ProductBloc, ProductState>(
-                listener: (context, state) {
-                  if (state is ProductOperationFailure) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: ${state.error}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  } else if (state is ProductsLoadSuccess) {
-                    // Product was added successfully and products reloaded
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Product added successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  }
-                },
-                builder: (context, state) {
-                  return ElevatedButton(
-                    onPressed: state is ProductOperationInProgress
-                        ? null
-                        : _saveProduct,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: state is ProductOperationInProgress
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text('Save Product'),
-                  );
-                },
-              ),
+              // Extract to separate widget to get proper context
+              _SaveProductButton(formKey: _formKey, onSave: _saveProduct),
             ],
           ),
         ),
@@ -392,5 +351,56 @@ class _AddProductPageState extends State<AddProductPage> {
     _stockController.dispose();
     _minStockController.dispose();
     super.dispose();
+  }
+}
+
+// Separate widget for the save button that will have access to ProductBloc
+class _SaveProductButton extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
+  final VoidCallback onSave;
+
+  const _SaveProductButton({required this.formKey, required this.onSave});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<ProductBloc, ProductState>(
+      listener: (context, state) {
+        if (state is ProductOperationFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${state.error}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else if (state is ProductsLoadSuccess) {
+          // Product was added successfully and products reloaded
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Product added successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      },
+      builder: (context, state) {
+        return ElevatedButton(
+          onPressed: state is ProductOperationInProgress ? null : onSave,
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: state is ProductOperationInProgress
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text('Save Product'),
+        );
+      },
+    );
   }
 }
