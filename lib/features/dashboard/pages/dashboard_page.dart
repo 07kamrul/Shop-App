@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shop_management/features/auth/pages/login_page.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../blocs/sale/sale_bloc.dart';
-import '../../../data/models/sale_model.dart';
 import '../../../data/models/user_model.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/stats_card.dart';
@@ -40,7 +40,16 @@ class DashboardPage extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.logout),
                   onPressed: () {
+                    // Dispatch sign out event to AuthBloc
                     context.read<AuthBloc>().add(AuthSignOutRequested());
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<AuthBloc>(),
+                          child: LoginPage(),
+                        ),
+                      ),
+                    );
                   },
                 ),
               ],
@@ -104,28 +113,22 @@ class DashboardPage extends StatelessWidget {
       children: [
         Text(
           'Welcome back, ${user.name}!',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Here\'s your shop overview',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildStatsGrid(
-      BuildContext context,
-      SaleState saleState,
-      ProductState productState,
-      ) {
+    BuildContext context,
+    SaleState saleState,
+    ProductState productState,
+  ) {
     int totalProducts = 0;
     int lowStockCount = 0;
     double todaySales = 0.0;
@@ -191,19 +194,16 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildRecentActivitySection(
-      BuildContext context,
-      SaleState saleState,
-      BoxConstraints constraints,
-      ) {
+    BuildContext context,
+    SaleState saleState,
+    BoxConstraints constraints,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Recent Sales',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -224,10 +224,7 @@ class DashboardPage extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               'Loading sales...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
@@ -241,27 +238,17 @@ class DashboardPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red,
-              ),
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               Text(
                 'Failed to load sales',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
               Text(
                 saleState.error,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -284,11 +271,7 @@ class DashboardPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.receipt_long,
-                size: 80,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.receipt_long, size: 80, color: Colors.grey[400]),
               const SizedBox(height: 16),
               const Text(
                 'No sales today',
@@ -304,10 +287,7 @@ class DashboardPage extends StatelessWidget {
                 child: Text(
                   'Sales will appear here once you make transactions',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 ),
               ),
             ],
@@ -340,11 +320,7 @@ class DashboardPage extends StatelessWidget {
                   color: Colors.blue.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.receipt,
-                  color: Colors.blue[700],
-                  size: 20,
-                ),
+                child: Icon(Icons.receipt, color: Colors.blue[700], size: 20),
               ),
               title: Text(
                 sale.customerName ?? 'Walk-in Customer',
@@ -361,18 +337,12 @@ class DashboardPage extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${sale.itemCount} item${sale.itemCount == 1 ? '' : 's'} • ${_formatPaymentMethod(sale.paymentMethod)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _formatDate(sale.dateTime),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -391,10 +361,7 @@ class DashboardPage extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Profit: ₹${sale.totalProfit.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.green[700],
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.green[700]),
                   ),
                 ],
               ),
@@ -412,10 +379,7 @@ class DashboardPage extends StatelessWidget {
           SizedBox(height: 16),
           Text(
             'Loading...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),

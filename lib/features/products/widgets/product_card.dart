@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shop_management/features/products/pages/edit_product_page.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../core/utils/calculations.dart';
 
@@ -106,8 +107,15 @@ class ProductCard extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.edit, size: 20),
                   onPressed: () {
-                    // Navigate to edit product
-                  },
+                    Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<ProductBloc>(),
+                            child: EditProductPage(product: product),
+                          ),
+                        ),
+                      );   
+                 },
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, size: 20, color: Colors.red),

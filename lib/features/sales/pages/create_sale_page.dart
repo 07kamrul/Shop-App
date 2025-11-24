@@ -29,98 +29,107 @@ class _CreateSalePageState extends State<CreateSalePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        if (authState is! AuthAuthenticated) {
+    return BlocProvider(
+      create: (context) => SaleBloc(),
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          if (authState is! AuthAuthenticated) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('New Sale')),
+              body: const Center(child: Text('Please log in to create sales')),
+            );
+          }
+
+          final user = authState.user;
+
           return Scaffold(
-            appBar: AppBar(title: const Text('New Sale')),
-            body: const Center(child: Text('Please log in to create sales')),
-          );
-        }
-
-        final user = authState.user;
-
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('New Sale'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.save),
-                onPressed: _saleItems.isNotEmpty
-                    ? () => _completeSale(user.id)
-                    : null,
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // Customer Info
-              _buildCustomerInfo(),
-
-              // Products List
-              Expanded(
-                child: BlocBuilder<ProductBloc, ProductState>(
-                  builder: (context, state) {
-                    if (state is ProductsLoadInProgress) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (state is ProductsLoadFailure) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Failed to load products',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              state.error,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<ProductBloc>().add(LoadProducts());
-                              },
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    if (state is ProductsLoadSuccess) {
-                      final products = state.products;
-                      
-                      // Filter products with stock and convert to Product objects
-                      final availableProducts = products.where((productData) {
-                        if (productData is Map<String, dynamic>) {
-                          final currentStock = productData['currentStock'] ?? 0;
-                          return currentStock > 0;
-                        } else if (productData is Product) {
-                          return productData.currentStock > 0;
-                        }
-                        return false;
-                      }).toList();
-
-                      return _buildProductsGrid(availableProducts);
-                    }
-
-                    return const Center(child: Text('Load products to start sale'));
-                  },
+            appBar: AppBar(
+              title: const Text('New Sale'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  onPressed: _saleItems.isNotEmpty
+                      ? () => _completeSale(user.id)
+                      : null,
                 ),
-              ),
+              ],
+            ),
+            body: Column(
+              children: [
+                // Customer Info
+                _buildCustomerInfo(),
 
-              // Sale Summary
-              _buildSaleSummary(),
-            ],
-          ),
-        );
-      },
+                // Products List
+                Expanded(
+                  child: BlocBuilder<ProductBloc, ProductState>(
+                    builder: (context, state) {
+                      if (state is ProductsLoadInProgress) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (state is ProductsLoadFailure) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Failed to load products',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(state.error, textAlign: TextAlign.center),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  context.read<ProductBloc>().add(
+                                    LoadProducts(),
+                                  );
+                                },
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      if (state is ProductsLoadSuccess) {
+                        final products = state.products;
+
+                        // Filter products with stock and convert to Product objects
+                        final availableProducts = products.where((productData) {
+                          if (productData is Map<String, dynamic>) {
+                            final currentStock =
+                                productData['currentStock'] ?? 0;
+                            return currentStock > 0;
+                          } else if (productData is Product) {
+                            return productData.currentStock > 0;
+                          }
+                          return false;
+                        }).toList();
+
+                        return _buildProductsGrid(availableProducts);
+                      }
+
+                      return const Center(
+                        child: Text('Load products to start sale'),
+                      );
+                    },
+                  ),
+                ),
+
+                // Sale Summary
+                _buildSaleSummary(),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -130,6 +139,7 @@ class _CreateSalePageState extends State<CreateSalePage> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min, // Add this
           children: [
             Row(
               children: [
@@ -327,6 +337,7 @@ class _CreateSalePageState extends State<CreateSalePage> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -389,7 +400,9 @@ class _CreateSalePageState extends State<CreateSalePage> {
                 return SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _saleItems.isNotEmpty && state is! SaleOperationInProgress
+                    onPressed:
+                        _saleItems.isNotEmpty &&
+                            state is! SaleOperationInProgress
                         ? () {
                             final authState = context.read<AuthBloc>().state;
                             if (authState is AuthAuthenticated) {
@@ -407,7 +420,9 @@ class _CreateSalePageState extends State<CreateSalePage> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shop_management/features/categories/pages/categories_list_page.dart';
 import 'package:shop_management/features/products/pages/add_product_page.dart';
+import 'package:shop_management/features/products/pages/products_list_page.dart';
 import 'package:shop_management/features/reports/page/reports_page.dart';
+import 'package:shop_management/features/sales/pages/sale_list_page.dart';
 
 import '../../analytics/pages/advanced_analytics_page.dart';
 import '../../customers/pages/customers_list_page.dart';
@@ -38,7 +40,21 @@ class QuickActions extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => const AddProductPage(),
                   ),
-                );              },
+                );
+              },
+            ),
+            _buildActionButton(
+              icon: Icons.list,
+              label: 'Products',
+              color: Colors.blue,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProductsListPage(),
+                  ),
+                );
+              },
             ),
             _buildActionButton(
               icon: Icons.shopping_cart,
@@ -50,7 +66,19 @@ class QuickActions extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => const CreateSalePage(),
                   ),
-                );              },
+                );
+              },
+            ),
+            _buildActionButton(
+              icon: Icons.list,
+              label: 'Sales',
+              color: Colors.green,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SaleListPage()),
+                );
+              },
             ),
             _buildActionButton(
               icon: Icons.assessment,
@@ -59,10 +87,9 @@ class QuickActions extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReportsPage(),
-                  ),
-                );                },
+                  MaterialPageRoute(builder: (context) => const ReportsPage()),
+                );
+              },
             ),
             // _buildActionButton(
             //   icon: Icons.inventory_2,
@@ -80,7 +107,8 @@ class QuickActions extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => const CategoriesListPage(),
                   ),
-                );                },
+                );
+              },
             ),
             // Add these to the QuickActions grid in dashboard_page.dart
             _buildActionButton(

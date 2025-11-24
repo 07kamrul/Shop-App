@@ -73,7 +73,7 @@ class SaleItem extends Equatable {
 class Sale extends Equatable {
   final String? id;
   final DateTime dateTime;
-  final DateTime updatedAt;
+  final DateTime createdAt;
   final List<SaleItem> items;
   final String? customerId;
   final String? customerName;
@@ -89,7 +89,7 @@ class Sale extends Equatable {
   const Sale({
     this.id,
     required this.dateTime,
-    required this.updatedAt,
+    required this.createdAt,
     required this.items,
     this.customerId,
     this.customerName,
@@ -116,8 +116,8 @@ class Sale extends Equatable {
       dateTime: DateTime.parse(
         json['dateTime'] ?? DateTime.now().toIso8601String(),
       ),
-      updatedAt: DateTime.parse(
-        json['updatedAt'] ?? DateTime.now().toIso8601String(),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
       ),
       items: items,
       customerName: json['customerName'],
@@ -137,7 +137,7 @@ class Sale extends Equatable {
     return {
       if (id != null && id!.isNotEmpty) 'id': id,
       'dateTime': dateTime.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
       'items': items.map((item) => item.toJson()).toList(),
       'customerName': customerName,
       'customerPhone': customerPhone,
@@ -170,7 +170,7 @@ class Sale extends Equatable {
 
     return Sale(
       dateTime: now,
-      updatedAt: now,
+      createdAt: now,
       items: items,
       customerName: customerName,
       customerPhone: customerPhone,
@@ -190,7 +190,7 @@ class Sale extends Equatable {
 
     return {
       'dateTime': now.toIso8601String(),
-      'updatedAt': now.toIso8601String(),
+      'createdAt': now.toIso8601String(),
       'items': items.map((item) => item.toJson()).toList(),
       'customerName': customerName,
       'customerPhone': customerPhone,
@@ -208,7 +208,7 @@ class Sale extends Equatable {
   Map<String, dynamic> toUpdateJson() {
     return {
       'dateTime': dateTime.toIso8601String(),
-      'updatedAt': DateTime.now().toIso8601String(),
+      'createdAt': DateTime.now().toIso8601String(),
       'items': items.map((item) => item.toJson()).toList(),
       'customerName': customerName,
       'customerPhone': customerPhone,
@@ -248,7 +248,7 @@ class Sale extends Equatable {
   Sale copyWith({
     String? id,
     DateTime? dateTime,
-    DateTime? updatedAt,
+    DateTime? createdAt,
     List<SaleItem>? items,
     String? customerName,
     String? customerPhone,
@@ -263,7 +263,7 @@ class Sale extends Equatable {
     return Sale(
       id: id ?? this.id,
       dateTime: dateTime ?? this.dateTime,
-      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
       items: items ?? this.items,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
@@ -281,7 +281,7 @@ class Sale extends Equatable {
   List<Object?> get props => [
     id,
     dateTime,
-    updatedAt,
+    createdAt,
     items,
     customerName,
     customerPhone,
