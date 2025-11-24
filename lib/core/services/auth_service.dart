@@ -2,7 +2,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
 class AuthService {
-  // Register new user
+  // Cache SharedPreferences instance
+  static SharedPreferences? _prefs;
+
+  // Auth data keys
+  static const _keyToken = 'token';
+  static const _keyRefreshToken = 'refreshToken';
+  static const _keyUserId = 'userId';
+  static const _keyUserEmail = 'userEmail';
+  static const _keyUserName = 'userName';
+  static const _keyShopName = 'shopName';
+  static const _keyUserPhone = 'userPhone';
+
+  static const _authKeys = [
+    _keyToken,
+    _keyRefreshToken,
+    _keyUserId,
+    _keyUserEmail,
+    _keyUserName,
+    _keyShopName,
+    _keyUserPhone,
+  ];
+
+  /// Get or initialize SharedPreferences instance
+  static Future<SharedPreferences> _getPrefs() async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  /// Register new user
   static Future<Map<String, dynamic>> register({
     required String email,
     required String password,
@@ -16,132 +43,137 @@ class AuthService {
         'password': password,
         'name': name,
         'shopName': shopName,
-        'phone': phone,
+        if (phone != null) 'phone': phone,
       };
 
       final response = await ApiService.post('/auth/register', data);
 
-      if (response['token'] != null) {
+      final token = response['token'];
+      if (token != null && token is String && token.isNotEmpty) {
         await _saveAuthData(response);
+        // Clear API headers cache to include new token
+        ApiService.clearHeadersCache();
       }
 
       return response;
     } on ApiException catch (e) {
-      // Extract only the clean message from backend
-      String cleanMessage = e.message;
-
-      // Optional: Make common messages more user-friendly
-      if (cleanMessage.toLowerCase().contains('already exists')) {
-        cleanMessage = 'User with this email already exists.';
-      } else if (e.statusCode == 0) {
-        cleanMessage = 'No internet connection.';
-      } else if (e.statusCode >= 500) {
-        cleanMessage = 'Server error. Please try again later.';
-      }
-
-      // Throw only the clean message — no technical junk
-      throw Exception(cleanMessage);
+      throw Exception(_normalizeErrorMessage(e));
     } catch (e) {
-      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+      throw Exception(_cleanExceptionMessage(e.toString()));
     }
   }
 
-  // Login user
+  /// Login user
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
     try {
       final data = {'email': email, 'password': password};
-
       final response = await ApiService.post('/auth/login', data);
 
-      // Save token and user data
-      if (response['token'] != null) {
+      final token = response['token'];
+      if (token != null && token is String && token.isNotEmpty) {
         await _saveAuthData(response);
+        ApiService.clearHeadersCache();
       }
 
       return response;
+    } on ApiException catch (e) {
+      throw Exception(_normalizeErrorMessage(e));
     } catch (e) {
-      // Re-throw with more context
-      throw Exception('Login failed: $e');
+      throw Exception('Login failed: ${_cleanExceptionMessage(e.toString())}');
     }
   }
 
-  // Refresh token
+  /// Refresh authentication token
   static Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
     try {
       final response = await ApiService.post('/auth/refresh-token', {
         'refreshToken': refreshToken,
       });
 
-      // Update token
-      if (response['token'] != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', response['token']);
-        await prefs.setString('refreshToken', response['refreshToken']);
+      final newToken = response['token'];
+      final newRefreshToken = response['refreshToken'];
+
+      if (newToken != null && newRefreshToken != null) {
+        final prefs = await _getPrefs();
+        await Future.wait([
+          prefs.setString(_keyToken, newToken),
+          prefs.setString(_keyRefreshToken, newRefreshToken),
+        ]);
+        ApiService.clearHeadersCache();
       }
 
       return response;
+    } on ApiException catch (e) {
+      throw Exception(_normalizeErrorMessage(e));
     } catch (e) {
-      throw Exception('Token refresh failed: $e');
+      throw Exception(
+        'Token refresh failed: ${_cleanExceptionMessage(e.toString())}',
+      );
     }
   }
 
-  // Logout user
+  /// Logout user and clear all auth data
   static Future<void> logout() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final prefs = await _getPrefs();
+      final token = prefs.getString(_keyToken);
 
-      if (token != null) {
+      // Attempt API logout (don't fail if it errors)
+      if (token != null && token.isNotEmpty) {
         try {
           await ApiService.post('/auth/logout', {});
         } catch (e) {
-          // Continue with logout even if API call fails
+          // Log but continue with local logout
           print('Logout API call failed: $e');
         }
       }
 
-      // Clear local storage
-      await prefs.remove('token');
-      await prefs.remove('refreshToken');
-      await prefs.remove('userId');
-      await prefs.remove('userEmail');
-      await prefs.remove('userName');
-      await prefs.remove('shopName');
-      await prefs.remove('userPhone');
+      // Clear all auth data in parallel
+      await Future.wait(_authKeys.map((key) => prefs.remove(key)));
+
+      // Clear API headers cache
+      ApiService.clearHeadersCache();
     } catch (e) {
-      throw Exception('Logout failed: $e');
+      // Even if logout fails, try to clear local data
+      try {
+        final prefs = await _getPrefs();
+        await Future.wait(_authKeys.map((key) => prefs.remove(key)));
+        ApiService.clearHeadersCache();
+      } catch (_) {
+        throw Exception(
+          'Logout failed: ${_cleanExceptionMessage(e.toString())}',
+        );
+      }
     }
   }
 
-  // Check if user is logged in
+  /// Check if user is logged in
   static Future<bool> isLoggedIn() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final prefs = await _getPrefs();
+      final token = prefs.getString(_keyToken);
       return token != null && token.isNotEmpty;
     } catch (e) {
       return false;
     }
   }
 
-  // Get current user data
+  /// Get current user data from local storage
   static Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final prefs = await _getPrefs();
+      final token = prefs.getString(_keyToken);
 
       if (token == null || token.isEmpty) return null;
 
-      final userId = prefs.getString('userId');
-      final userEmail = prefs.getString('userEmail');
-      final userName = prefs.getString('userName');
-      final shopName = prefs.getString('shopName');
-      final userPhone = prefs.getString('userPhone');
+      final userId = prefs.getString(_keyUserId);
+      final userEmail = prefs.getString(_keyUserEmail);
+      final userName = prefs.getString(_keyUserName);
 
-      // Only return if we have basic user info
+      // Require basic user info
       if (userId == null || userEmail == null || userName == null) {
         return null;
       }
@@ -150,41 +182,131 @@ class AuthService {
         'id': userId,
         'email': userEmail,
         'name': userName,
-        'shopName': shopName,
-        'phone': userPhone,
+        'shopName': prefs.getString(_keyShopName),
+        'phone': prefs.getString(_keyUserPhone),
       };
     } catch (e) {
       return null;
     }
   }
 
-  // Save authentication data to shared preferences
-  static Future<void> _saveAuthData(Map<String, dynamic> response) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      await prefs.setString('token', response['token'] ?? '');
-      await prefs.setString('refreshToken', response['refreshToken'] ?? '');
-      await prefs.setString('userId', response['id']?.toString() ?? '');
-      await prefs.setString('userEmail', response['email'] ?? '');
-      await prefs.setString('userName', response['name'] ?? '');
-      await prefs.setString('shopName', response['shopName'] ?? '');
-
-      if (response['phone'] != null) {
-        await prefs.setString('userPhone', response['phone'] ?? '');
-      }
-    } catch (e) {
-      throw Exception('Failed to save auth data: $e');
-    }
-  }
-
-  // Get stored token
+  /// Get stored authentication token
   static Future<String?> getToken() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('token');
+      final prefs = await _getPrefs();
+      return prefs.getString(_keyToken);
     } catch (e) {
       return null;
     }
+  }
+
+  /// Update user profile data locally
+  static Future<void> updateLocalUserData({
+    String? name,
+    String? shopName,
+    String? phone,
+  }) async {
+    try {
+      final prefs = await _getPrefs();
+      final futures = <Future>[];
+
+      if (name != null) {
+        futures.add(prefs.setString(_keyUserName, name));
+      }
+      if (shopName != null) {
+        futures.add(prefs.setString(_keyShopName, shopName));
+      }
+      if (phone != null) {
+        futures.add(prefs.setString(_keyUserPhone, phone));
+      }
+
+      if (futures.isNotEmpty) {
+        await Future.wait(futures);
+      }
+    } catch (e) {
+      throw Exception(
+        'Failed to update user data: ${_cleanExceptionMessage(e.toString())}',
+      );
+    }
+  }
+
+  /// Clear all cached data (useful for testing)
+  static Future<void> clearAllData() async {
+    try {
+      final prefs = await _getPrefs();
+      await prefs.clear();
+      _prefs = null;
+      ApiService.clearHeadersCache();
+    } catch (e) {
+      throw Exception(
+        'Failed to clear data: ${_cleanExceptionMessage(e.toString())}',
+      );
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  Private helper methods
+  // ──────────────────────────────────────────────────────────────
+
+  /// Save authentication data to SharedPreferences in parallel
+  static Future<void> _saveAuthData(Map<String, dynamic> response) async {
+    try {
+      final prefs = await _getPrefs();
+
+      final futures = <Future>[
+        prefs.setString(_keyToken, response['token']?.toString() ?? ''),
+        prefs.setString(
+          _keyRefreshToken,
+          response['refreshToken']?.toString() ?? '',
+        ),
+        prefs.setString(_keyUserId, response['id']?.toString() ?? ''),
+        prefs.setString(_keyUserEmail, response['email']?.toString() ?? ''),
+        prefs.setString(_keyUserName, response['name']?.toString() ?? ''),
+        prefs.setString(_keyShopName, response['shopName']?.toString() ?? ''),
+      ];
+
+      if (response['phone'] != null) {
+        futures.add(
+          prefs.setString(_keyUserPhone, response['phone'].toString()),
+        );
+      }
+
+      await Future.wait(futures);
+    } catch (e) {
+      throw Exception(
+        'Failed to save auth data: ${_cleanExceptionMessage(e.toString())}',
+      );
+    }
+  }
+
+  /// Normalize error messages from ApiException
+  static String _normalizeErrorMessage(ApiException e) {
+    final msg = e.message.toLowerCase();
+
+    if (e.statusCode == 0) {
+      return 'No internet connection.';
+    } else if (e.statusCode >= 500) {
+      return 'Server error. Please try again later.';
+    } else if (e.statusCode == 401) {
+      return 'Invalid credentials.';
+    } else if (e.statusCode == 409 || msg.contains('already exists')) {
+      return 'User with this email already exists.';
+    } else if (msg.contains('not found')) {
+      return 'User not found.';
+    } else if (msg.contains('invalid') && msg.contains('password')) {
+      return 'Invalid password.';
+    } else if (msg.contains('validation')) {
+      return 'Invalid input. Please check your data.';
+    }
+
+    return e.message;
+  }
+
+  /// Clean exception messages by removing prefixes
+  static String _cleanExceptionMessage(String message) {
+    return message
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('ApiException: ', '')
+        .trim();
   }
 }

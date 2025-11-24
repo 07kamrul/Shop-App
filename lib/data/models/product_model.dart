@@ -35,7 +35,6 @@ class Product extends Equatable {
     this.isActive = true,
   });
 
-  // Calculated properties
   double get profitPerUnit => sellingPrice - buyingPrice;
   double get profitMargin =>
       sellingPrice > 0 ? (profitPerUnit / sellingPrice) * 100 : 0.0;
@@ -43,7 +42,6 @@ class Product extends Equatable {
   bool get isOutOfStock => currentStock <= 0;
   double get totalValue => currentStock * buyingPrice;
 
-  // Convert from JSON (API response)
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'] ?? json['_id'],
@@ -51,215 +49,71 @@ class Product extends Equatable {
       barcode: json['barcode'],
       categoryId: json['categoryId'] ?? '',
       categoryName: json['categoryName'] ?? '',
-      buyingPrice: (json['buyingPrice'] ?? 0).toDouble(),
-      sellingPrice: (json['sellingPrice'] ?? 0).toDouble(),
-      currentStock: json['currentStock'] ?? 0,
-      minStockLevel: json['minStockLevel'] ?? 10,
+      buyingPrice: (json['buyingPrice'] as num?)?.toDouble() ?? 0.0,
+      sellingPrice: (json['sellingPrice'] as num?)?.toDouble() ?? 0.0,
+      currentStock: (json['currentStock'] as num?)?.toInt() ?? 0,
+      minStockLevel: (json['minStockLevel'] as num?)?.toInt() ?? 10,
       supplierId: json['supplierId'],
       supplierName: json['supplierName'],
-      createdAt: DateTime.parse(
-        json['createdAt'] ?? DateTime.now().toIso8601String(),
-      ),
-      createdBy: json['createdBy'] ?? '',
-      updatedAt: DateTime.parse(
-        json['updatedAt'] ?? DateTime.now().toIso8601String(),
-      ),
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      createdBy: json['createdBy']?.toString() ?? 'unknown',
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+          DateTime.now(),
       isActive: json['isActive'] ?? true,
     );
   }
 
-  // Convert to JSON (API request)
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null && id!.isNotEmpty) 'id': id,
-      'name': name,
-      'barcode': barcode,
-      'categoryId': categoryId,
-      'categoryName': categoryName,
-      'buyingPrice': buyingPrice,
-      'sellingPrice': sellingPrice,
-      'currentStock': currentStock,
-      'minStockLevel': minStockLevel,
-      'supplierId': supplierId,
-      'supplierName': supplierName,
-      'createdAt': createdAt.toIso8601String(),
-      'createdBy': createdBy,
-      'updatedAt': updatedAt.toIso8601String(),
-      'isActive': isActive,
-    };
-  }
-
-  // Factory for creating new products
   factory Product.create({
     required String name,
-    String? barcode,
     required String categoryId,
-    String categoryName = '',
     required double buyingPrice,
     required double sellingPrice,
+    required String createdBy,
+    String? barcode,
+    String categoryName = '',
     int currentStock = 0,
     int minStockLevel = 10,
     String? supplierId,
     String? supplierName,
-    required String createdBy,
   }) {
     final now = DateTime.now();
     return Product(
       name: name,
-      barcode: barcode,
       categoryId: categoryId,
       categoryName: categoryName,
       buyingPrice: buyingPrice,
       sellingPrice: sellingPrice,
       currentStock: currentStock,
       minStockLevel: minStockLevel,
+      barcode: barcode,
       supplierId: supplierId,
       supplierName: supplierName,
       createdAt: now,
       createdBy: createdBy,
       updatedAt: now,
-      isActive: true,
     );
   }
 
-  // Convert to JSON for creating new product
-  Map<String, dynamic> toCreateJson() {
-    final now = DateTime.now();
-    return {
-      'name': name,
-      'barcode': barcode,
-      'categoryId': categoryId,
-      'categoryName': categoryName,
-      'buyingPrice': buyingPrice,
-      'sellingPrice': sellingPrice,
-      'currentStock': currentStock,
-      'minStockLevel': minStockLevel,
-      'supplierId': supplierId,
-      'supplierName': supplierName,
-      'createdAt': now.toIso8601String(),
-      'createdBy': createdBy,
-      'updatedAt': now.toIso8601String(),
-      'isActive': isActive,
-    };
-  }
-
-  // Convert to JSON for updating product
-  Map<String, dynamic> toUpdateJson() {
-    return {
-      'name': name,
-      'barcode': barcode,
-      'categoryId': categoryId,
-      'categoryName': categoryName,
-      'buyingPrice': buyingPrice,
-      'sellingPrice': sellingPrice,
-      'currentStock': currentStock,
-      'minStockLevel': minStockLevel,
-      'supplierId': supplierId,
-      'supplierName': supplierName,
-      'createdBy': createdBy,
-      'updatedAt': DateTime.now().toIso8601String(),
-      'isActive': isActive,
-    };
-  }
-
-  // For partial updates (PATCH requests)
-  Map<String, dynamic> toPartialUpdateJson() {
-    final jsonMap = <String, dynamic>{};
-
-    if (name.isNotEmpty) jsonMap['name'] = name;
-    if (barcode != null) jsonMap['barcode'] = barcode;
-    if (categoryId.isNotEmpty) jsonMap['categoryId'] = categoryId;
-    if (categoryName.isNotEmpty) jsonMap['categoryName'] = categoryName;
-
-    jsonMap['buyingPrice'] = buyingPrice;
-    jsonMap['sellingPrice'] = sellingPrice;
-    jsonMap['currentStock'] = currentStock;
-    jsonMap['minStockLevel'] = minStockLevel;
-
-    if (supplierId != null) jsonMap['supplierId'] = supplierId;
-    if (supplierName != null) jsonMap['supplierName'] = supplierName;
-
-    jsonMap['createdBy'] = createdBy;
-    jsonMap['updatedAt'] = DateTime.now().toIso8601String();
-    jsonMap['isActive'] = isActive;
-
-    return jsonMap;
-  }
-
-  // For stock updates only
-  Map<String, dynamic> toStockUpdateJson() {
-    return {
-      'currentStock': currentStock,
-      'createdBy': createdBy,
-      'updatedAt': DateTime.now().toIso8601String(),
-    };
-  }
-
-  // For price updates only
-  Map<String, dynamic> toPriceUpdateJson() {
-    return {
-      'buyingPrice': buyingPrice,
-      'sellingPrice': sellingPrice,
-      'createdBy': createdBy,
-      'updatedAt': DateTime.now().toIso8601String(),
-    };
-  }
-
-  // Validation methods
-  bool get isValidForCreation {
-    return name.isNotEmpty &&
-        categoryId.isNotEmpty &&
-        buyingPrice >= 0 &&
-        sellingPrice >= buyingPrice &&
-        createdBy.isNotEmpty;
-  }
-
-  bool get isValidForUpdate {
-    return id != null && id!.isNotEmpty && isValidForCreation;
-  }
-
-  // Stock management methods
-  Product increaseStock(int quantity) {
-    return copyWith(currentStock: currentStock + quantity);
-  }
-
-  Product decreaseStock(int quantity) {
-    final newStock = currentStock - quantity;
-    return copyWith(currentStock: newStock >= 0 ? newStock : 0);
-  }
-
-  Product updateStock(int newStock) {
-    return copyWith(currentStock: newStock >= 0 ? newStock : 0);
-  }
-
-  Product updatePrices({
-    required double newBuyingPrice,
-    required double newSellingPrice,
-  }) {
-    return copyWith(buyingPrice: newBuyingPrice, sellingPrice: newSellingPrice);
-  }
-
-  Product deactivate() {
-    return copyWith(isActive: false);
-  }
-
-  Product activate() {
-    return copyWith(isActive: true);
-  }
-
-  Product updateCategory(String newCategoryId, String newCategoryName) {
-    return copyWith(
-      categoryId: newCategoryId,
-      categoryName: newCategoryName,
-    );
-  }
-
-  Product updateSupplier(String? newSupplierId, String? newSupplierName) {
-    return copyWith(
-      supplierId: newSupplierId,
-      supplierName: newSupplierName,
-    );
-  }
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    'name': name,
+    'barcode': barcode,
+    'categoryId': categoryId,
+    'categoryName': categoryName,
+    'buyingPrice': buyingPrice,
+    'sellingPrice': sellingPrice,
+    'currentStock': currentStock,
+    'minStockLevel': minStockLevel,
+    'supplierId': supplierId,
+    'supplierName': supplierName,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'createdBy': createdBy,
+    'isActive': isActive,
+  };
 
   Product copyWith({
     String? id,
@@ -299,20 +153,20 @@ class Product extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        barcode,
-        categoryId,
-        categoryName,
-        buyingPrice,
-        sellingPrice,
-        currentStock,
-        minStockLevel,
-        supplierId,
-        supplierName,
-        createdAt,
-        createdBy,
-        updatedAt,
-        isActive,
-      ];
+    id,
+    name,
+    barcode,
+    categoryId,
+    categoryName,
+    buyingPrice,
+    sellingPrice,
+    currentStock,
+    minStockLevel,
+    supplierId,
+    supplierName,
+    createdAt,
+    createdBy,
+    updatedAt,
+    isActive,
+  ];
 }

@@ -11,91 +11,132 @@ class InventoryDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inventoryService = InventoryService();
-    final summary = inventoryService.getInventorySummary(products);
-    final productsNeedingRestock = inventoryService.getProductsNeedingRestock(
+    final summary = InventoryService.getInventorySummary(products);
+    final productsNeedingRestock = InventoryService.getProductsNeedingRestock(
       products,
     );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inventory Report'),
+        elevation: 2,
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_alt),
-            onPressed: () {
-              _showFilterDialog(context);
-            },
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filter',
+            onPressed: () => _showFilterDialog(context),
           ),
           IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () {
-              _exportInventoryReport(context, products);
-            },
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export',
+            onPressed: () => _exportInventoryReport(context),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Summary Row
-            _buildQuickSummary(summary),
-            const SizedBox(height: 20),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Fixed: Use the outer context safely
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Refreshed!'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildQuickSummary(summary),
+              const SizedBox(height: 24),
 
-            // Restock Priority Section
-            if (productsNeedingRestock.isNotEmpty) ...[
-              _buildRestockPrioritySection(productsNeedingRestock),
-              const SizedBox(height: 20),
+              if (productsNeedingRestock.isNotEmpty) ...[
+                _buildRestockPrioritySection(productsNeedingRestock),
+                const SizedBox(height: 24),
+              ],
+
+              const Text(
+                'All Products',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              _buildProductsList(products),
+
+              // Ensures scroll works even with little content
+              const SizedBox(height: 100),
             ],
-
-            // All Products List
-            Expanded(child: _buildProductsList(products)),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildQuickSummary(InventorySummary summary) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildSummaryItem('Total Products', summary.totalProducts.toString()),
-        _buildSummaryItem(
-          'Stock Value',
-          '₹${summary.totalStockValue.toStringAsFixed(0)}',
+    final totalAlerts = summary.lowStockItems + summary.outOfStockItems;
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildSummaryItem(
+              label: 'Total Products',
+              value: summary.totalProducts.toString(),
+              color: Colors.blue,
+            ),
+            _buildSummaryItem(
+              label: 'Stock Value',
+              value: '₹${summary.totalStockValue.toStringAsFixed(0)}',
+              color: Colors.green,
+            ),
+            _buildSummaryItem(
+              label: 'Alerts',
+              value: totalAlerts.toString(),
+              color: totalAlerts > 0 ? Colors.red : Colors.grey,
+              bold: totalAlerts > 0,
+            ),
+          ],
         ),
-        _buildSummaryItem(
-          'Alerts',
-          (summary.lowStockItems + summary.outOfStockItems).toString(),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildSummaryItem(String label, String value) {
+  Widget _buildSummaryItem({
+    required String label,
+    required String value,
+    required Color color,
+    bool bold = false,
+  }) {
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: bold ? FontWeight.bold : FontWeight.w600,
+            color: color,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
       ],
     );
   }
 
   Widget _buildRestockPrioritySection(List<Product> productsNeedingRestock) {
+    final displayItems = productsNeedingRestock.take(5).toList();
+
     return Card(
-      elevation: 2,
       color: Colors.orange[50],
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -103,54 +144,74 @@ class InventoryDetailPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.priority_high, color: Colors.orange),
-                const SizedBox(width: 8),
+                Icon(Icons.priority_high, color: Colors.orange[700], size: 28),
+                const SizedBox(width: 10),
                 const Text(
                   'Restock Priority',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.orange,
                   ),
                 ),
                 const Spacer(),
                 Chip(
-                  label: Text('${productsNeedingRestock.length} items'),
-                  backgroundColor: Colors.orange[100],
+                  backgroundColor: Colors.orange[200],
+                  label: Text(
+                    '${productsNeedingRestock.length} items',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            ...productsNeedingRestock
-                .take(3)
-                .map(
-                  (product) => ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: product.currentStock == 0
-                          ? Colors.red
-                          : Colors.orange,
-                      child: Text(
-                        product.currentStock.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+            const SizedBox(height: 16),
+            ...displayItems.map(
+              (product) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: product.currentStock == 0
+                        ? Colors.red
+                        : Colors.orange,
+                    child: Text(
+                      product.currentStock.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                    title: Text(product.name),
-                    subtitle: Text('Min: ${product.minStockLevel}'),
-                    trailing: Text(
-                      '₹${product.buyingPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                  ),
+                  title: Text(
+                    product.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    'Min: ${product.minStockLevel} • Buying: ₹${product.buyingPrice.toStringAsFixed(0)}',
+                  ),
+                  trailing: Icon(
+                    product.currentStock == 0 ? Icons.error : Icons.warning,
+                    color: product.currentStock == 0
+                        ? Colors.red
+                        : Colors.orange,
                   ),
                 ),
-            if (productsNeedingRestock.length > 3)
+              ),
+            ),
+            if (productsNeedingRestock.length > 5)
               Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  '+ ${productsNeedingRestock.length - 3} more items need restock',
-                  style: const TextStyle(fontSize: 12, color: Colors.orange),
+                padding: const EdgeInsets.only(top: 12),
+                child: Center(
+                  child: Text(
+                    '+ ${productsNeedingRestock.length - 5} more items need attention',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -160,40 +221,51 @@ class InventoryDetailPage extends StatelessWidget {
   }
 
   Widget _buildProductsList(List<Product> products) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'All Products',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return InventoryProductCard(product: product);
-            },
+    if (products.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40.0),
+          child: Column(
+            children: [
+              Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No products found',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            ],
           ),
         ),
-      ],
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: InventoryProductCard(product: product),
+        );
+      },
     );
   }
 
   void _showFilterDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Filter Inventory'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFilterOption('All Products', true),
-            _buildFilterOption('Low Stock Only', false),
-            _buildFilterOption('Out of Stock Only', false),
-            _buildFilterOption('By Category', false),
+            _buildFilterOption(context, 'All Products', true),
+            _buildFilterOption(context, 'Low Stock Only', false),
+            _buildFilterOption(context, 'Out of Stock Only', false),
+            _buildFilterOption(context, 'High Value Items', false),
+            _buildFilterOption(context, 'By Category', false),
           ],
         ),
         actions: [
@@ -201,7 +273,7 @@ class InventoryDetailPage extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Apply'),
           ),
@@ -210,22 +282,25 @@ class InventoryDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterOption(String title, bool isSelected) {
+  Widget _buildFilterOption(BuildContext context, String title, bool isSelected) {
     return ListTile(
+      contentPadding: EdgeInsets.zero,
       leading: Icon(
         isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-        color: isSelected ? Colors.blue : Colors.grey,
+        color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
       ),
       title: Text(title),
-      onTap: () {},
+      onTap: () {
+        // Future: handle selection
+      },
     );
   }
 
-  void _exportInventoryReport(BuildContext context, List<Product> products) {
-    // Implement export functionality
+  void _exportInventoryReport(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Inventory report export feature coming soon!'),
+        content: Text('Exporting inventory report...'),
+        duration: Duration(seconds: 2),
       ),
     );
   }

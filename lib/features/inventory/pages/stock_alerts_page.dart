@@ -19,8 +19,7 @@ class StockAlertsPage extends StatelessWidget {
           );
         }
 
-        final inventoryService = InventoryService();
-        final alerts = inventoryService.getStockAlerts(state.products.cast<Product>());
+        final alerts = InventoryService.getStockAlerts(state.products.cast<Product>());
 
         return Scaffold(
           appBar: AppBar(
