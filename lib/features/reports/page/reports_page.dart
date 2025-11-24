@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shop_management/features/inventory/pages/inventory_dashboard_page.dart';
 import 'package:shop_management/features/reports/page/top_products_page.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/report/report_bloc.dart';
@@ -107,7 +108,12 @@ class _ReportsPageState extends State<ReportsPage> {
                     icon: Icons.inventory_2,
                     color: Colors.purple,
                     onTap: () {
-                      // Navigate to inventory report
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const InventoryDashboardPage(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -237,5 +243,4 @@ class _ReportsPageState extends State<ReportsPage> {
       });
     }
   }
-
 }
