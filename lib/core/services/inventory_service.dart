@@ -6,6 +6,72 @@ import 'package:shop_management/data/models/sale_model.dart';
 import 'api_service.dart';
 
 class InventoryService {
+  // ──────────────────────────────────────────────────────────────
+  //  New: Backend API Endpoints
+  // ──────────────────────────────────────────────────────────────
+
+  /// GET /api/inventory/summary
+  static Future<InventorySummary> getInventorySummaryFromApi() async {
+    try {
+      final data = await ApiService.get('/inventory/summary');
+      return InventorySummary.fromJson(data);
+    } on ApiException catch (e) {
+      _rethrowClean(e);
+    }
+  }
+
+  /// GET /api/inventory/alerts
+  static Future<List<StockAlert>> getStockAlertsFromApi() async {
+    try {
+      final data = await ApiService.get('/inventory/alerts');
+      return (data as List).map((json) => StockAlert.fromJson(json)).toList();
+    } on ApiException catch (e) {
+      _rethrowClean(e);
+    }
+  }
+
+  /// GET /api/inventory/by-category
+  static Future<List<CategoryInventory>> getCategoryInventoryFromApi() async {
+    try {
+      final data = await ApiService.get('/inventory/by-category');
+      return (data as List)
+          .map((json) => CategoryInventory.fromJson(json))
+          .toList();
+    } on ApiException catch (e) {
+      _rethrowClean(e);
+    }
+  }
+
+  /// GET /api/inventory/restock-needed
+  static Future<List<Product>> getProductsNeedingRestockFromApi() async {
+    try {
+      final data = await ApiService.get('/inventory/restock-needed');
+      return (data as List).map((json) => Product.fromJson(json)).toList();
+    } on ApiException catch (e) {
+      _rethrowClean(e);
+    }
+  }
+
+  /// GET /api/inventory/turnover?startDate=...&endDate=...
+  static Future<double> getInventoryTurnoverFromApi({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final params = {
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate.toIso8601String(),
+      };
+      final data = await ApiService.get(
+        '/inventory/turnover',
+        queryParams: params,
+      );
+      return (data as num).toDouble();
+    } on ApiException catch (e) {
+      _rethrowClean(e);
+    }
+  }
+
   /// Calculates inventory summary with a single pass through products
   static InventorySummary getInventorySummary(List<Product> products) {
     if (products.isEmpty) {
@@ -26,7 +92,7 @@ class InventoryService {
     // Single pass through products - O(n) instead of multiple passes
     for (final p in products) {
       final stock = p.currentStock;
-      
+
       if (stock == 0) {
         outOfStock++;
       } else if (p.isLowStock) {
@@ -52,7 +118,7 @@ class InventoryService {
 
     for (final p in products) {
       final stock = p.currentStock;
-      
+
       if (stock == 0) {
         alerts.add(
           StockAlert(
@@ -82,7 +148,7 @@ class InventoryService {
     alerts.sort((a, b) {
       final aOutOfStock = a.alertType == 'out_of_stock';
       final bOutOfStock = b.alertType == 'out_of_stock';
-      
+
       if (aOutOfStock && !bOutOfStock) return -1;
       if (!aOutOfStock && bOutOfStock) return 1;
       return a.currentStock.compareTo(b.currentStock);
@@ -105,7 +171,7 @@ class InventoryService {
           productCount: 0,
           stockValue: 0.0,
           lowStockCount: 0,
-        )
+        ),
     };
 
     // Single pass through products
@@ -133,7 +199,7 @@ class InventoryService {
     final needsRestock = products
         .where((p) => p.currentStock == 0 || p.isLowStock)
         .toList();
-    
+
     needsRestock.sort((a, b) => a.currentStock.compareTo(b.currentStock));
     return needsRestock;
   }
@@ -274,7 +340,7 @@ class InventoryService {
   static Never _rethrowClean(ApiException e) {
     final statusCode = e.statusCode;
     final originalMsg = e.message.toLowerCase();
-    
+
     String msg;
     if (statusCode == 0) {
       msg = 'No internet connection.';
