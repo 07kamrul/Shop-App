@@ -16,57 +16,67 @@ class InventoryDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => InventoryBloc()..add(LoadInventoryDashboard()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Inventory Dashboard'),
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () =>
-                  context.read<InventoryBloc>().add(LoadInventoryDashboard()),
-            ),
-          ],
-        ),
-        body: RefreshIndicator(
-          onRefresh: () async {
-            context.read<InventoryBloc>().add(LoadInventoryDashboard());
-          },
-          child: BlocBuilder<InventoryBloc, InventoryState>(
-            builder: (context, state) {
-              if (state is InventoryLoading || state is InventoryInitial) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      child: const _InventoryDashboardView(), // Wrapped in a separate widget
+    );
+  }
+}
 
-              if (state is InventoryError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(state.message, textAlign: TextAlign.center),
-                      ElevatedButton(
-                        onPressed: () => context.read<InventoryBloc>().add(
-                          LoadInventoryDashboard(),
-                        ),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                );
-              }
+// New wrapper widget to ensure correct context
+class _InventoryDashboardView extends StatelessWidget {
+  const _InventoryDashboardView();
 
-              if (state is InventoryDashboardLoaded) {
-                return _DashboardContent(
-                  summary: state.summary,
-                  alerts: state.alerts,
-                );
-              }
-
-              return const Center(child: Text('No data'));
-            },
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Inventory Dashboard'),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () =>
+                context.read<InventoryBloc>().add(LoadInventoryDashboard()),
           ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<InventoryBloc>().add(LoadInventoryDashboard());
+        },
+        child: BlocBuilder<InventoryBloc, InventoryState>(
+          builder: (context, state) {
+            if (state is InventoryLoading || state is InventoryInitial) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is InventoryError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(state.message, textAlign: TextAlign.center),
+                    ElevatedButton(
+                      onPressed: () => context.read<InventoryBloc>().add(
+                        LoadInventoryDashboard(),
+                      ),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (state is InventoryDashboardLoaded) {
+              return _DashboardContent(
+                summary: state.summary,
+                alerts: state.alerts,
+              );
+            }
+
+            return const Center(child: Text('No data'));
+          },
         ),
       ),
     );
@@ -88,14 +98,15 @@ class _DashboardContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary Cards
-          GridView.count(
-            crossAxisCount: 2,
+          GridView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.4, // Adjusted for better fit
+            ),
             children: [
               InventorySummaryCard(
                 title: 'Total Products',
@@ -176,7 +187,10 @@ class _DashboardContent extends StatelessWidget {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const StockAlertsPage(),
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<InventoryBloc>(),
+                            child: const StockAlertsPage(),
+                          ),
                         ),
                       ),
                       child: Text('View all ${alerts.length} alerts →'),
@@ -209,13 +223,17 @@ class _DashboardContent extends StatelessWidget {
                         label: 'By Category',
                         color: Colors.purple,
                         onTap: () {
-                          context.read<InventoryBloc>().add(
-                            LoadCategoryInventory(),
-                          );
+                          // Get the bloc before navigation
+                          final bloc = context.read<InventoryBloc>();
+                          bloc.add(LoadCategoryInventory());
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const CategoryInventoryPage(),
+                              builder: (_) => BlocProvider.value(
+                                value: bloc,
+                                child: const CategoryInventoryPage(),
+                              ),
                             ),
                           );
                         },
@@ -225,13 +243,17 @@ class _DashboardContent extends StatelessWidget {
                         label: 'Restock Needed',
                         color: Colors.red,
                         onTap: () {
-                          context.read<InventoryBloc>().add(
-                            LoadRestockNeeded(),
-                          );
+                          // Get the bloc before navigation
+                          final bloc = context.read<InventoryBloc>();
+                          bloc.add(LoadRestockNeeded());
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const RestockNeededPage(),
+                              builder: (_) => BlocProvider.value(
+                                value: bloc,
+                                child: const RestockNeededPage(),
+                              ),
                             ),
                           );
                         },
@@ -269,8 +291,9 @@ class _DashboardContent extends StatelessWidget {
                 'Turnover Rate: ${state.turnover.toStringAsFixed(2)}x',
               );
             }
-            if (state is InventoryLoading)
+            if (state is InventoryLoading) {
               return const LinearProgressIndicator();
+            }
             return const Text('Calculating...');
           },
         ),
