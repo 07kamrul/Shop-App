@@ -1,12 +1,12 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_management/blocs/category/category_bloc.dart';
 import 'package:shop_management/blocs/product/product_bloc.dart';
 import 'package:shop_management/blocs/sale/sale_bloc.dart';
+import 'package:shop_management/core/services/api_service.dart';
 import 'blocs/auth/auth_bloc.dart';
 import 'features/auth/pages/login_page.dart';
-import 'features/auth/pages/register_page.dart'; // ← Add this
+import 'features/auth/pages/register_page.dart';
 import 'features/dashboard/pages/dashboard_page.dart';
 
 void main() async {
@@ -30,13 +30,15 @@ class MyApp extends StatelessWidget {
         BlocProvider<ProductBloc>(
           create: (context) => ProductBloc()..add(LoadProducts()),
         ),
-        BlocProvider<SaleBloc>(
-          create: (context) => SaleBloc(),
-        ),
+        BlocProvider<SaleBloc>(create: (context) => SaleBloc()),
       ],
       child: MaterialApp(
         title: 'Shop Management',
         debugShowCheckedModeBanner: false,
+
+        // Add the global navigator key from ApiService
+        navigatorKey: ApiService.navigatorKey,
+
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,

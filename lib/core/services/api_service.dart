@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static const int timeoutSeconds = 15;
+
+  // Global navigator key for navigation without context
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   // Cache the base URL to avoid repeated Platform checks
   static String? _cachedBaseUrl;
@@ -66,12 +71,58 @@ class ApiService {
     _headersCacheTime = null;
   }
 
+  /// Handle 401 Unauthorized - Clear auth and redirect to login
+  static Future<void> _handle401Unauthorized() async {
+    if (_isDebugMode) print('🔒 401 Unauthorized - Redirecting to login...');
+
+    try {
+      // Clear authentication data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('user');
+
+      // Clear cached headers
+      clearHeadersCache();
+
+      // Navigate to login page
+      final navigator = navigatorKey.currentState;
+      if (navigator != null) {
+        // Remove all routes and navigate to login
+        navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+
+        // Show a snackbar message
+        final context = navigator.context;
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session expired. Please login again.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (_isDebugMode) print('Error handling 401: $e');
+    }
+  }
+
   /// Handle API response with proper error extraction
-  static dynamic _handleResponse(http.Response response) {
+  static dynamic _handleResponse(http.Response response) async {
+    // Handle 401 Unauthorized globally
+    if (response.statusCode == 401) {
+      await _handle401Unauthorized();
+      throw ApiException(
+        message: 'Session expired. Please login again.',
+        statusCode: 401,
+      );
+    }
+
     if (response.body.isEmpty) {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return null; // Successful empty response (e.g., DELETE)
       }
+
       throw ApiException(
         message: 'Empty response from server',
         statusCode: response.statusCode,
@@ -123,7 +174,7 @@ class ApiService {
       final response = await requestFn().timeout(
         const Duration(seconds: timeoutSeconds),
       );
-      return _handleResponse(response);
+      return await _handleResponse(response);
     } on TimeoutException {
       throw ApiException(
         message: 'Request timeout. Please try again.',
@@ -228,7 +279,7 @@ class ApiService {
     );
   }
 
-  /// Generic PATCH request (bonus - commonly needed)
+  /// Generic PATCH request
   static Future<dynamic> patch(
     String endpoint,
     dynamic data, {
