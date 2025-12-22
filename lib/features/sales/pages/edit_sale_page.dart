@@ -163,14 +163,14 @@ class _EditSalePageState extends State<EditSalePage> {
                           ),
                         );
                       } else if (state is SalesLoadSuccess) {
-                        // After successful update/delete, list is refreshed
+                        // This triggers after add/update/delete + reload
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Sale updated successfully!'),
                             backgroundColor: Colors.green,
                           ),
                         );
-                        Navigator.of(context).pop();
+                        Navigator.of(context).pop(); // Go back to list
                       }
                     },
                     builder: (context, state) {
@@ -231,12 +231,11 @@ class _EditSalePageState extends State<EditSalePage> {
           : _customerPhoneCtrl.text.trim(),
       paymentMethod: _paymentMethod,
       items: _items,
-      // Note: If your backend supports full update, send whole sale.
-      // Otherwise you may need a separate "UpdateSale" event + service method.
     );
 
-    // For now we reuse AddSale (replace) – you may want a dedicated UpdateSale event later.
-    context.read<SaleBloc>().add(AddSale(sale: updatedSale));
+    context.read<SaleBloc>().add(
+      UpdateSale(saleId: widget.sale.id!, updatedSale: updatedSale),
+    );
   }
 
   void _showDeleteConfirm(BuildContext context) {

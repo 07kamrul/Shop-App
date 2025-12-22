@@ -18,10 +18,7 @@ class LoadSalesByDateRange extends SaleEvent {
   final DateTime startDate;
   final DateTime endDate;
 
-  const LoadSalesByDateRange({
-    required this.startDate,
-    required this.endDate,
-  });
+  const LoadSalesByDateRange({required this.startDate, required this.endDate});
 
   @override
   List<Object> get props => [startDate, endDate];
@@ -50,4 +47,14 @@ class DeleteSale extends SaleEvent {
 
   @override
   List<Object> get props => [saleId];
+}
+
+class UpdateSale extends SaleEvent {
+  final String saleId;
+  final Sale updatedSale;
+
+  const UpdateSale({required this.saleId, required this.updatedSale});
+
+  @override
+  List<Object> get props => [saleId, updatedSale];
 }

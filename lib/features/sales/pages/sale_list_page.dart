@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:shop_management/blocs/sale/sale_bloc.dart';
 import 'package:shop_management/data/models/sale_model.dart';
+import 'package:shop_management/features/sales/pages/create_sale_page.dart';
 import 'edit_sale_page.dart';
 
 class SaleListPage extends StatefulWidget {
@@ -63,6 +64,18 @@ class _SaleListPageState extends State<SaleListPage> {
     }
   }
 
+  void _openAddSalePage(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          // This shares the EXACT SAME SaleBloc instance
+          value: context.read<SaleBloc>(),
+          child: const CreateSalePage(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd MMMM yyyy');
@@ -71,6 +84,11 @@ class _SaleListPageState extends State<SaleListPage> {
       appBar: AppBar(
         title: const Text('Sales History'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _openAddSalePage(context),
+            tooltip: 'Add Product',
+          ),
           IconButton(
             icon: const Icon(Icons.calendar_today),
             tooltip: 'Select Date',

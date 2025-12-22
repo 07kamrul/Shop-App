@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shop_management/features/sales/pages/sale_list_page.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../blocs/sale/sale_bloc.dart';
@@ -379,21 +380,23 @@ class _CreateSalePageState extends State<CreateSalePage> {
             BlocConsumer<SaleBloc, SaleState>(
               listener: (context, state) {
                 if (state is SaleOperationFailure) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Sale failed: ${state.error}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  // Shows error message
                 } else if (state is SalesLoadSuccess) {
-                  // Sale was added successfully and sales reloaded
+                  // Sale created successfully and list reloaded
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Sale completed successfully!'),
                       backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
                     ),
                   );
-                  Navigator.pop(context);
+
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const SaleListPage(),
+                    ),
+                    (route) => route.isFirst,
+                  );
                 }
               },
               builder: (context, state) {
