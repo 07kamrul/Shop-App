@@ -341,7 +341,7 @@ class DashboardPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _formatDate(sale.dateTime),
+                    _formatDate(sale.saleDate),
                     style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   ),
                 ],

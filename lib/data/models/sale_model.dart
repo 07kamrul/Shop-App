@@ -72,7 +72,7 @@ class SaleItem extends Equatable {
 
 class Sale extends Equatable {
   final String? id;
-  final DateTime dateTime;
+  final DateTime saleDate;
   final DateTime createdAt;
   final List<SaleItem> items;
   final String? customerId;
@@ -88,7 +88,7 @@ class Sale extends Equatable {
 
   const Sale({
     this.id,
-    required this.dateTime,
+    required this.saleDate,
     required this.createdAt,
     required this.items,
     this.customerId,
@@ -113,8 +113,8 @@ class Sale extends Equatable {
 
     return Sale(
       id: json['id'] ?? json['_id'],
-      dateTime: DateTime.parse(
-        json['dateTime'] ?? DateTime.now().toIso8601String(),
+      saleDate: DateTime.parse(
+        json['saleDate'] ?? DateTime.now().toIso8601String(),
       ),
       createdAt: DateTime.parse(
         json['createdAt'] ?? DateTime.now().toIso8601String(),
@@ -136,7 +136,7 @@ class Sale extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       if (id != null && id!.isNotEmpty) 'id': id,
-      'dateTime': dateTime.toIso8601String(),
+      'saleDate': saleDate.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'items': items.map((item) => item.toJson()).toList(),
       'customerName': customerName,
@@ -169,7 +169,7 @@ class Sale extends Equatable {
     final totalProfit = items.fold(0.0, (sum, item) => sum + item.totalProfit);
 
     return Sale(
-      dateTime: now,
+      saleDate: now,
       createdAt: now,
       items: items,
       customerName: customerName,
@@ -207,7 +207,7 @@ class Sale extends Equatable {
   // Convert to JSON for updating sale
   Map<String, dynamic> toUpdateJson() {
     return {
-      'dateTime': dateTime.toIso8601String(),
+      'saleDate': saleDate.toIso8601String(),
       'createdAt': DateTime.now().toIso8601String(),
       'items': items.map((item) => item.toJson()).toList(),
       'customerName': customerName,
@@ -262,7 +262,7 @@ class Sale extends Equatable {
   }) {
     return Sale(
       id: id ?? this.id,
-      dateTime: dateTime ?? this.dateTime,
+      saleDate: saleDate ?? this.saleDate,
       createdAt: createdAt ?? this.createdAt,
       items: items ?? this.items,
       customerName: customerName ?? this.customerName,
@@ -280,7 +280,7 @@ class Sale extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    dateTime,
+    saleDate,
     createdAt,
     items,
     customerName,

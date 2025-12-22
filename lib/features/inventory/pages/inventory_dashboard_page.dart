@@ -3,156 +3,194 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_management/core/services/inventory_service.dart';
 import 'package:shop_management/data/models/product_model.dart';
 import 'package:shop_management/features/inventory/widgets/inventory_summary_card.dart';
-import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../data/models/inventory_model.dart';
 import '../widgets/stock_alert_card.dart';
 import 'inventory_detail_page.dart';
 import 'stock_alerts_page.dart';
 
-class InventoryDashboardPage extends StatelessWidget {
+class InventoryDashboardPage extends StatefulWidget {
   const InventoryDashboardPage({super.key});
 
   @override
+  State<InventoryDashboardPage> createState() => _InventoryDashboardPageState();
+}
+
+class _InventoryDashboardPageState extends State<InventoryDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Load products when page first opens
+    context.read<ProductBloc>().add(LoadProducts());
+  }
+
+  void _onRefresh() {
+    context.read<ProductBloc>().add(LoadProducts());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Inventory Management'),
+        elevation: 2,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: _onRefresh,
+          ),
+        ],
+      ),
+      body: BlocBuilder<ProductBloc, ProductState>(
+        builder: (context, state) {
+          if (state is ProductsLoadInProgress) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-    return BlocProvider(
-      // Fixed: Use direct ProductBloc() instead of getIt<ProductBloc>()
-      create: (context) => ProductBloc()..add(LoadProducts()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Inventory Management'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                context.read<ProductBloc>().add(LoadProducts());
-              },
-            ),
-          ],
-        ),
-        body: BlocBuilder<ProductBloc, ProductState>(
-          builder: (context, state) {
-            if (state is ProductsLoadInProgress) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is ProductsLoadFailure) {
-              return Center(
+          if (state is ProductsLoadFailure) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
+                    const Icon(Icons.error_outline, size: 80, color: Colors.red),
+                    const SizedBox(height: 24),
+                    const Text(
                       'Failed to load inventory',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 8),
-                    Text(state.error),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<ProductBloc>().add(LoadProducts());
-                      },
-                      child: const Text('Retry'),
+                    const SizedBox(height: 12),
+                    Text(
+                      state.error,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _onRefresh,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
                     ),
                   ],
                 ),
-              );
-            }
+              ),
+            );
+          }
 
-            if (state is ProductsLoadSuccess) {
-              final products = List<Product>.from(state.products);
-              final inventoryService = InventoryService();
-              final summary = inventoryService.getInventorySummary(
-                products,
-              );
-              final alerts = inventoryService.getStockAlerts(products);
+          if (state is ProductsLoadSuccess) {
+            final products = List<Product>.from(state.products);
 
-              return Padding(
+            // Use static methods directly — no instance needed
+            final summary = InventoryService.getInventorySummary(products);
+            final alerts = InventoryService.getStockAlerts(products);
+
+            return RefreshIndicator(
+              onRefresh: () async => _onRefresh(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Summary Cards
-                      _buildSummaryCards(summary),
-                      const SizedBox(height: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Summary Cards
+                    _buildSummarySection(summary),
+                    const SizedBox(height: 24),
 
-                      // Stock Alerts Section
-                      _buildStockAlertsSection(alerts, context),
-                      const SizedBox(height: 20),
+                    // Stock Alerts
+                    _buildStockAlertsSection(alerts, context),
+                    const SizedBox(height: 24),
 
-                      // Quick Actions
-                      _buildQuickActions(context, products),
-                    ],
-                  ),
+                    // Quick Actions
+                    _buildQuickActionsSection(context, products),
+
+                    const SizedBox(height: 40), // Bottom padding
+                  ],
                 ),
-              );
-            }
+              ),
+            );
+          }
 
-            return const Center(child: Text('Load inventory data'));
-          },
-        ),
+          // Initial or unknown state
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text('No inventory data'),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _onRefresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Load Data'),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSummaryCards(InventorySummary summary) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.4,
+  Widget _buildSummarySection(InventorySummary summary) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InventorySummaryCard(
-          title: 'Total Products',
-          value: summary.totalProducts.toString(),
-          icon: Icons.inventory_2,
-          color: Colors.blue,
-          subtitle: 'Active items',
+        const Text(
+          'Inventory Overview',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        InventorySummaryCard(
-          title: 'Stock Value',
-          value: '₹${summary.totalStockValue.toStringAsFixed(2)}',
-          icon: Icons.attach_money,
-          color: Colors.green,
-          subtitle: 'Current valuation',
-        ),
-        InventorySummaryCard(
-          title: 'Low Stock',
-          value: summary.lowStockItems.toString(),
-          icon: Icons.warning_amber,
-          color: Colors.orange,
-          subtitle: 'Need attention',
-        ),
-        InventorySummaryCard(
-          title: 'Out of Stock',
-          value: summary.outOfStockItems.toString(),
-          icon: Icons.error_outline,
-          color: Colors.red,
-          subtitle: 'Urgent restock',
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.5,
+          children: [
+            InventorySummaryCard(
+              title: 'Total Products',
+              value: summary.totalProducts.toString(),
+              icon: Icons.inventory_2,
+              color: Colors.blue,
+              subtitle: 'Active items',
+            ),
+            InventorySummaryCard(
+              title: 'Stock Value',
+              value: '₹${summary.totalStockValue.toStringAsFixed(0)}',
+              icon: Icons.attach_money,
+              color: Colors.green,
+              subtitle: 'Current valuation',
+            ),
+            InventorySummaryCard(
+              title: 'Low Stock',
+              value: summary.lowStockItems.toString(),
+              icon: Icons.warning_amber,
+              color: Colors.orange,
+              subtitle: 'Need attention',
+            ),
+            InventorySummaryCard(
+              title: 'Out of Stock',
+              value: summary.outOfStockItems.toString(),
+              icon: Icons.error_outline,
+              color: Colors.red,
+              subtitle: 'Urgent restock',
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildStockAlertsSection(
-    List<StockAlert> alerts,
-    BuildContext context,
-  ) {
+  Widget _buildStockAlertsSection(List<StockAlert> alerts, BuildContext context) {
     final criticalAlerts = alerts.take(3).toList();
 
     return Card(
-      elevation: 2,
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -167,37 +205,33 @@ class InventoryDashboardPage extends StatelessWidget {
                 const Spacer(),
                 if (alerts.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${alerts.length}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        fontSize: 13,
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-
+            const SizedBox(height: 16),
             if (criticalAlerts.isEmpty)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20.0),
+                padding: EdgeInsets.symmetric(vertical: 24),
                 child: Column(
                   children: [
-                    Icon(Icons.check_circle, size: 48, color: Colors.green),
-                    SizedBox(height: 8),
+                    Icon(Icons.check_circle, size: 56, color: Colors.green),
+                    SizedBox(height: 12),
                     Text(
                       'All products are well stocked!',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: Colors.green),
                     ),
                   ],
                 ),
@@ -205,26 +239,24 @@ class InventoryDashboardPage extends StatelessWidget {
             else
               Column(
                 children: [
-                  ...criticalAlerts.map(
-                    (alert) => StockAlertCard(alert: alert),
-                  ),
+                  ...criticalAlerts.map((alert) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: StockAlertCard(alert: alert),
+                      )),
                   const SizedBox(height: 12),
                   if (alerts.length > 3)
                     SizedBox(
                       width: double.infinity,
-                      child: TextButton(
+                      child: OutlinedButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const StockAlertsPage(),
+                              builder: (_) => const StockAlertsPage(),
                             ),
                           );
                         },
-                        child: Text(
-                          'View all ${alerts.length} alerts',
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
+                        child: Text('View all ${alerts.length} alerts'),
                       ),
                     ),
                 ],
@@ -235,9 +267,10 @@ class InventoryDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context, List<Product> products) {
+  Widget _buildQuickActionsSection(BuildContext context, List<Product> products) {
     return Card(
-      elevation: 2,
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -254,55 +287,43 @@ class InventoryDashboardPage extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.3,
+              childAspectRatio: 1.4,
               children: [
-                _buildQuickActionCard(
+                _buildActionCard(
                   icon: Icons.analytics,
-                  title: 'Inventory Report',
+                  title: 'Full Report',
                   color: Colors.purple,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            InventoryDetailPage(products: products),
+                        builder: (_) => InventoryDetailPage(products: products),
                       ),
                     );
                   },
                 ),
-                _buildQuickActionCard(
-                  icon: Icons.warning,
-                  title: 'Stock Alerts',
+                _buildActionCard(
+                  icon: Icons.warning_rounded,
+                  title: 'All Alerts',
                   color: Colors.orange,
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const StockAlertsPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const StockAlertsPage()),
                     );
                   },
                 ),
-                _buildQuickActionCard(
-                  icon: Icons.category,
+                _buildActionCard(
+                  icon: Icons.category_outlined,
                   title: 'By Category',
                   color: Colors.blue,
-                  onTap: () {
-                    _showCategoryInventory(context, products);
-                  },
+                  onTap: () => _showComingSoon(context, 'Category View'),
                 ),
-                _buildQuickActionCard(
+                _buildActionCard(
                   icon: Icons.add_box,
                   title: 'Add Product',
                   color: Colors.green,
-                  onTap: () {
-                    // TODO: Navigate to Add Product screen
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Add Product - Coming Soon!'),
-                      ),
-                    );
-                  },
+                  onTap: () => _showComingSoon(context, 'Add Product'),
                 ),
               ],
             ),
@@ -312,14 +333,14 @@ class InventoryDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionCard({
+  Widget _buildActionCard({
     required IconData icon,
     required String title,
     required Color color,
     required VoidCallback onTap,
   }) {
     return Card(
-      elevation: 1,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -329,15 +350,12 @@ class InventoryDashboardPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 36, color: color),
+              Icon(icon, size: 40, color: color),
               const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -346,19 +364,9 @@ class InventoryDashboardPage extends StatelessWidget {
     );
   }
 
-  void _showCategoryInventory(BuildContext context, List<Product> products) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Category Inventory'),
-        content: const Text('Category-wise breakdown coming soon!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature - Coming Soon!')),
     );
   }
 }

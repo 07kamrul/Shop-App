@@ -27,6 +27,7 @@
         android:theme="@style/LaunchTheme"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"
         tools:replace="android:theme">
 
         <activity

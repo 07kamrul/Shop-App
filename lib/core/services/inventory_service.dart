@@ -26,7 +26,7 @@ class InventoryService {
     // Single pass through products - O(n) instead of multiple passes
     for (final p in products) {
       final stock = p.currentStock;
-      
+
       if (stock == 0) {
         outOfStock++;
       } else if (p.isLowStock) {
@@ -52,7 +52,7 @@ class InventoryService {
 
     for (final p in products) {
       final stock = p.currentStock;
-      
+
       if (stock == 0) {
         alerts.add(
           StockAlert(
@@ -82,7 +82,7 @@ class InventoryService {
     alerts.sort((a, b) {
       final aOutOfStock = a.alertType == 'out_of_stock';
       final bOutOfStock = b.alertType == 'out_of_stock';
-      
+
       if (aOutOfStock && !bOutOfStock) return -1;
       if (!aOutOfStock && bOutOfStock) return 1;
       return a.currentStock.compareTo(b.currentStock);
@@ -105,7 +105,7 @@ class InventoryService {
           productCount: 0,
           stockValue: 0.0,
           lowStockCount: 0,
-        )
+        ),
     };
 
     // Single pass through products
@@ -133,7 +133,7 @@ class InventoryService {
     final needsRestock = products
         .where((p) => p.currentStock == 0 || p.isLowStock)
         .toList();
-    
+
     needsRestock.sort((a, b) => a.currentStock.compareTo(b.currentStock));
     return needsRestock;
   }
@@ -149,7 +149,7 @@ class InventoryService {
 
     // Filter sales within date range
     final periodSales = sales.where(
-      (s) => s.dateTime.isAfter(startDate) && s.dateTime.isBefore(endDate),
+      (s) => s.saleDate.isAfter(startDate) && s.saleDate.isBefore(endDate),
     );
 
     // Calculate total sales amount
@@ -274,7 +274,7 @@ class InventoryService {
   static Never _rethrowClean(ApiException e) {
     final statusCode = e.statusCode;
     final originalMsg = e.message.toLowerCase();
-    
+
     String msg;
     if (statusCode == 0) {
       msg = 'No internet connection.';
