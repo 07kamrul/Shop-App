@@ -30,12 +30,7 @@ class SalesReportPage extends StatelessWidget {
 
         return BlocProvider(
           create: (context) => ReportBloc()
-            ..add(
-              LoadDailySalesReport(
-                startDate: startDate,
-                endDate: endDate,
-              ),
-            ),
+            ..add(LoadDailySalesReport(startDate: startDate, endDate: endDate)),
           child: Scaffold(
             appBar: AppBar(title: const Text('Sales Report')),
             body: BlocBuilder<ReportBloc, ReportState>(
@@ -46,7 +41,11 @@ class SalesReportPage extends StatelessWidget {
 
                 if (state is DailySalesReportLoaded) {
                   final reports = state.reports;
-                  return _buildSalesReportContent(reports);
+                  return _SalesReportContent(
+                    reports: reports,
+                    startDate: startDate,
+                    endDate: endDate,
+                  );
                 }
 
                 if (state is ReportLoadFailure) {
@@ -54,7 +53,11 @@ class SalesReportPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Failed to load sales report',
@@ -91,21 +94,40 @@ class SalesReportPage extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildSalesReportContent(List<DailySalesReport> reports) {
-    final totalSales = reports.fold<double>(
+class _SalesReportContent extends StatefulWidget {
+  final List<DailySalesReport> reports;
+  final DateTime startDate;
+  final DateTime endDate;
+
+  const _SalesReportContent({
+    required this.reports,
+    required this.startDate,
+    required this.endDate,
+  });
+
+  @override
+  State<_SalesReportContent> createState() => _SalesReportContentState();
+}
+
+class _SalesReportContentState extends State<_SalesReportContent> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSales = widget.reports.fold<double>(
       0.0,
       (sum, report) => sum + report.totalSales,
     );
-    final totalProfit = reports.fold<double>(
+    final totalProfit = widget.reports.fold<double>(
       0.0,
       (sum, report) => sum + report.totalProfit,
     );
-    final totalTransactions = reports.fold<int>(
+    final totalTransactions = widget.reports.fold<int>(
       0,
       (sum, report) => sum + report.totalTransactions,
     );
-
     final double averageSale = totalTransactions > 0
         ? totalSales / totalTransactions
         : 0.0;
@@ -121,20 +143,12 @@ class SalesReportPage extends StatelessWidget {
             totalTransactions,
             averageSale,
           ),
-          const SizedBox(height: 20),
-
-          // Sales Chart
-          Expanded(
-            flex: 2,
-            child: _buildSalesChart(reports),
-          ),
-
-          // Daily Breakdown
-          const SizedBox(height: 20),
-          Expanded(
-            flex: 1,
-            child: _buildDailyBreakdown(reports),
-          ),
+          const SizedBox(height: 16),
+          // Sales Chart with Expand Button
+          _buildSalesChart(widget.reports),
+          const SizedBox(height: 16),
+          // Daily Breakdown takes all remaining space
+          Expanded(child: _buildDailyBreakdown(widget.reports)),
         ],
       ),
     );
@@ -150,8 +164,9 @@ class SalesReportPage extends StatelessWidget {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.4,
       children: [
         _buildSummaryCard(
           'Total Sales',
@@ -190,34 +205,32 @@ class SalesReportPage extends StatelessWidget {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: 18),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -231,51 +244,76 @@ class SalesReportPage extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Sales Trend',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SfCartesianChart(
-                primaryXAxis: DateTimeAxis(
-                  title: const AxisTitle(text: 'Date'),
-                  dateFormat: DateFormat('MMM dd'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sales Trend',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                primaryYAxis: NumericAxis(
-                  title: const AxisTitle(text: 'Amount (₹)'),
-                  numberFormat: NumberFormat.currency(
-                    symbol: '₹',
-                    decimalDigits: 0,
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      _isExpanded ? Icons.expand_less : Icons.expand_more,
+                      color: Colors.blue,
+                      size: 24,
+                    ),
                   ),
                 ),
-                legend: const Legend(isVisible: true),
-                tooltipBehavior: TooltipBehavior(enable: true),
-                series: <CartesianSeries>[
-                  LineSeries<DailySalesReport, DateTime>(
-                    name: 'Sales',
-                    dataSource: reports,
-                    xValueMapper: (DailySalesReport report, _) => report.date,
-                    yValueMapper: (DailySalesReport report, _) => report.totalSales,
-                    markerSettings: const MarkerSettings(isVisible: true),
-                    color: Colors.blue,
-                  ),
-                  LineSeries<DailySalesReport, DateTime>(
-                    name: 'Profit',
-                    dataSource: reports,
-                    xValueMapper: (DailySalesReport report, _) => report.date,
-                    yValueMapper: (DailySalesReport report, _) => report.totalProfit,
-                    markerSettings: const MarkerSettings(isVisible: true),
-                    color: Colors.green,
-                  ),
-                ],
-              ),
+              ],
             ),
+            // Only show chart content when expanded
+            if (_isExpanded) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 250,
+                child: SfCartesianChart(
+                  primaryXAxis: DateTimeAxis(
+                    title: const AxisTitle(text: 'Date'),
+                    dateFormat: DateFormat('MMM dd'),
+                  ),
+                  primaryYAxis: NumericAxis(
+                    title: const AxisTitle(text: 'Amount (₹)'),
+                    numberFormat: NumberFormat.currency(
+                      symbol: '₹',
+                      decimalDigits: 0,
+                    ),
+                  ),
+                  legend: const Legend(isVisible: true),
+                  tooltipBehavior: TooltipBehavior(enable: true),
+                  series: <CartesianSeries>[
+                    LineSeries<DailySalesReport, DateTime>(
+                      name: 'Sales',
+                      dataSource: reports,
+                      xValueMapper: (DailySalesReport report, _) => report.date,
+                      yValueMapper: (DailySalesReport report, _) =>
+                          report.totalSales,
+                      markerSettings: const MarkerSettings(isVisible: true),
+                      color: Colors.blue,
+                    ),
+                    LineSeries<DailySalesReport, DateTime>(
+                      name: 'Profit',
+                      dataSource: reports,
+                      xValueMapper: (DailySalesReport report, _) => report.date,
+                      yValueMapper: (DailySalesReport report, _) =>
+                          report.totalProfit,
+                      markerSettings: const MarkerSettings(isVisible: true),
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -286,18 +324,40 @@ class SalesReportPage extends StatelessWidget {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Daily Breakdown',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Daily Breakdown',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                if (!_isExpanded)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Full View',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
             Expanded(
               child: reports.isEmpty
                   ? const Center(
@@ -322,8 +382,8 @@ class SalesReportPage extends StatelessWidget {
 
   Widget _buildDailyReportItem(DailySalesReport report) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
@@ -345,18 +405,12 @@ class SalesReportPage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${report.totalTransactions} transaction${report.totalTransactions == 1 ? '' : 's'}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Margin: ${report.profitMargin.toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),

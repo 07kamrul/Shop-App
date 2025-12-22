@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_management/blocs/inventory/inventory_bloc.dart';
+import 'package:shop_management/blocs/product/product_bloc.dart';
 import 'package:shop_management/data/models/inventory_model.dart';
 import 'package:shop_management/features/inventory/pages/category_inventory_page.dart';
 import 'package:shop_management/features/inventory/pages/restock_needed_page.dart';
@@ -81,9 +82,8 @@ class _InventoryDashboardView extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            );
-          }
+              );
+            }
 
             if (state is InventoryDashboardLoaded) {
               return _DashboardContent(
