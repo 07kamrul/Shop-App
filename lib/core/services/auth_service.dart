@@ -11,8 +11,11 @@ class AuthService {
   static const _keyUserId = 'userId';
   static const _keyUserEmail = 'userEmail';
   static const _keyUserName = 'userName';
-  static const _keyShopName = 'shopName';
   static const _keyUserPhone = 'userPhone';
+  // Multi-tenant keys
+  static const _keyCompanyId = 'companyId';
+  static const _keyCompanyName = 'companyName';
+  static const _keyUserRole = 'userRole';
 
   static const _authKeys = [
     _keyToken,
@@ -20,8 +23,10 @@ class AuthService {
     _keyUserId,
     _keyUserEmail,
     _keyUserName,
-    _keyShopName,
     _keyUserPhone,
+    _keyCompanyId,
+    _keyCompanyName,
+    _keyUserRole,
   ];
 
   /// Get or initialize SharedPreferences instance
@@ -29,12 +34,12 @@ class AuthService {
     return _prefs ??= await SharedPreferences.getInstance();
   }
 
-  /// Register new user
+  /// Register new user (creates company)
   static Future<Map<String, dynamic>> register({
     required String email,
     required String password,
     required String name,
-    required String shopName,
+    required String companyName,
     String? phone,
   }) async {
     try {
@@ -42,7 +47,7 @@ class AuthService {
         'email': email,
         'password': password,
         'name': name,
-        'shopName': shopName,
+        'companyName': companyName,
         if (phone != null) 'phone': phone,
       };
 
@@ -182,8 +187,10 @@ class AuthService {
         'id': userId,
         'email': userEmail,
         'name': userName,
-        'shopName': prefs.getString(_keyShopName),
         'phone': prefs.getString(_keyUserPhone),
+        'companyId': prefs.getString(_keyCompanyId),
+        'companyName': prefs.getString(_keyCompanyName),
+        'role': prefs.getString(_keyUserRole),
       };
     } catch (e) {
       return null;
@@ -200,10 +207,30 @@ class AuthService {
     }
   }
 
+  /// Get stored company ID
+  static Future<String?> getCompanyId() async {
+    try {
+      final prefs = await _getPrefs();
+      return prefs.getString(_keyCompanyId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get stored user role
+  static Future<String?> getUserRole() async {
+    try {
+      final prefs = await _getPrefs();
+      return prefs.getString(_keyUserRole);
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Update user profile data locally
   static Future<void> updateLocalUserData({
     String? name,
-    String? shopName,
+    String? companyName,
     String? phone,
   }) async {
     try {
@@ -213,8 +240,8 @@ class AuthService {
       if (name != null) {
         futures.add(prefs.setString(_keyUserName, name));
       }
-      if (shopName != null) {
-        futures.add(prefs.setString(_keyShopName, shopName));
+      if (companyName != null) {
+        futures.add(prefs.setString(_keyCompanyName, companyName));
       }
       if (phone != null) {
         futures.add(prefs.setString(_keyUserPhone, phone));
@@ -262,7 +289,19 @@ class AuthService {
         prefs.setString(_keyUserId, response['id']?.toString() ?? ''),
         prefs.setString(_keyUserEmail, response['email']?.toString() ?? ''),
         prefs.setString(_keyUserName, response['name']?.toString() ?? ''),
-        prefs.setString(_keyShopName, response['shopName']?.toString() ?? ''),
+        // Multi-tenant data
+        prefs.setString(
+          _keyCompanyId,
+          response['companyId']?.toString() ?? '',
+        ),
+        prefs.setString(
+          _keyCompanyName,
+          response['companyName']?.toString() ?? response['shopName']?.toString() ?? '',
+        ),
+        prefs.setString(
+          _keyUserRole,
+          response['role']?.toString() ?? 'Staff',
+        ),
       ];
 
       if (response['phone'] != null) {

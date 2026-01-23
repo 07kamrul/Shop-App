@@ -28,7 +28,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
         name: event.name,
-        shopName: event.shopName,
+        companyName: event.companyName,
         phone: event.phone,
       );
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_management/blocs/category/category_bloc.dart';
+import 'package:shop_management/blocs/company/company_bloc.dart';
 import 'package:shop_management/blocs/product/product_bloc.dart';
 import 'package:shop_management/blocs/sale/sale_bloc.dart';
 import 'package:shop_management/core/services/api_service.dart';
@@ -23,6 +24,9 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc()..add(AuthCheckRequested()),
+        ),
+        BlocProvider<CompanyBloc>(
+          create: (context) => CompanyBloc(),
         ),
         BlocProvider<CategoryBloc>(
           create: (context) => CategoryBloc()..add(const LoadCategories()),

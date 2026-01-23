@@ -18,7 +18,7 @@ class _AuthFormState extends State<AuthForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  final _shopNameController = TextEditingController();
+  final _companyNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -88,9 +88,9 @@ class _AuthFormState extends State<AuthForm> {
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
-                      controller: _shopNameController,
-                      label: 'Shop Name',
-                      icon: Icons.store,
+                      controller: _companyNameController,
+                      label: 'Company Name',
+                      icon: Icons.business,
                       validator: Validators.validateName,
                     ),
                     const SizedBox(height: 16),
@@ -230,7 +230,7 @@ class _AuthFormState extends State<AuthForm> {
             email: email,
             password: password,
             name: _nameController.text.trim(),
-            shopName: _shopNameController.text.trim(),
+            companyName: _companyNameController.text.trim(),
             phone: _phoneController.text.trim().isEmpty
                 ? null
                 : _phoneController.text.trim(),
@@ -245,7 +245,7 @@ class _AuthFormState extends State<AuthForm> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
-    _shopNameController.dispose();
+    _companyNameController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
