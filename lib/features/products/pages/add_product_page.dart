@@ -5,6 +5,7 @@ import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/category/category_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/rbac_widget.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -67,115 +68,135 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add Product')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+    return ManagerOrAbove(
+      fallback: Scaffold(
+        appBar: AppBar(title: const Text('Add Product')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.inventory_2),
-                ),
-                validator: Validators.validateName,
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'Access Denied',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _barcodeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Barcode (Optional)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.qr_code),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _scanBarcode,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                    ),
-                    child: const Icon(Icons.qr_code_scanner),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildCategoryDropdown(),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _buyingPriceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Buying Price *',
-                        border: OutlineInputBorder(),
-                        prefixText: '₹',
-                        prefixIcon: Icon(Icons.shopping_cart),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: Validators.validatePrice,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _sellingPriceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Selling Price *',
-                        border: OutlineInputBorder(),
-                        prefixText: '₹',
-                        prefixIcon: Icon(Icons.sell),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: Validators.validatePrice,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stockController,
-                      decoration: const InputDecoration(
-                        labelText: 'Initial Stock *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.inventory),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: Validators.validateStock,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _minStockController,
-                      decoration: const InputDecoration(
-                        labelText: 'Min Stock Level',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.warning),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              _buildProfitPreview(),
-              const SizedBox(height: 32),
-              // Extract to separate widget to get proper context
-              _SaveProductButton(formKey: _formKey, onSave: _saveProduct),
+              SizedBox(height: 8),
+              Text('You do not have permission to add products.'),
             ],
+          ),
+        ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Add Product')),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Product Name *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.inventory_2),
+                  ),
+                  validator: Validators.validateName,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _barcodeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Barcode (Optional)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.qr_code),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _scanBarcode,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                      ),
+                      child: const Icon(Icons.qr_code_scanner),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildCategoryDropdown(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _buyingPriceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Buying Price *',
+                          border: OutlineInputBorder(),
+                          prefixText: '₹',
+                          prefixIcon: Icon(Icons.shopping_cart),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: Validators.validatePrice,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _sellingPriceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Selling Price *',
+                          border: OutlineInputBorder(),
+                          prefixText: '₹',
+                          prefixIcon: Icon(Icons.sell),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: Validators.validatePrice,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _stockController,
+                        decoration: const InputDecoration(
+                          labelText: 'Initial Stock *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.inventory),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: Validators.validateStock,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _minStockController,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Stock Level',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.warning),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                _buildProfitPreview(),
+                const SizedBox(height: 32),
+                // Extract to separate widget to get proper context
+                _SaveProductButton(formKey: _formKey, onSave: _saveProduct),
+              ],
+            ),
           ),
         ),
       ),

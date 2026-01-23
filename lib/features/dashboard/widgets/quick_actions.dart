@@ -7,8 +7,10 @@ import 'package:shop_management/features/sales/pages/sale_list_page.dart';
 
 import '../../analytics/pages/advanced_analytics_page.dart';
 import '../../customers/pages/customers_list_page.dart';
-import '../../sales/pages/create_sale_page.dart';
+import 'package:shop_management/features/sales/pages/create_sale_page.dart';
 import '../../suppliers/pages/suppliers_list_page.dart';
+import '../../../../core/widgets/rbac_widget.dart';
+import '../../company/pages/company_page.dart';
 
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});
@@ -30,19 +32,41 @@ class QuickActions extends StatelessWidget {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
-            _buildActionButton(
-              icon: Icons.add,
-              label: 'Add Product',
-              color: Colors.blue,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddProductPage(),
-                  ),
-                );
-              },
+            // Company Management (Manager+)
+            ManagerOrAbove(
+              child: _buildActionButton(
+                icon: Icons.business_center,
+                label: 'Company',
+                color: Colors.indigo,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CompanyPage(),
+                    ),
+                  );
+                },
+              ),
             ),
+
+            // Add Product (Manager+)
+            ManagerOrAbove(
+              child: _buildActionButton(
+                icon: Icons.add,
+                label: 'Add Product',
+                color: Colors.blue,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddProductPage(),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Products List (All)
             _buildActionButton(
               icon: Icons.list,
               label: 'Products',
@@ -56,6 +80,8 @@ class QuickActions extends StatelessWidget {
                 );
               },
             ),
+
+            // New Sale (All)
             _buildActionButton(
               icon: Icons.shopping_cart,
               label: 'New Sale',
@@ -69,8 +95,10 @@ class QuickActions extends StatelessWidget {
                 );
               },
             ),
+
+            // Sales History (All)
             _buildActionButton(
-              icon: Icons.list,
+              icon: Icons.history,
               label: 'Sales',
               color: Colors.green,
               onTap: () {
@@ -80,37 +108,42 @@ class QuickActions extends StatelessWidget {
                 );
               },
             ),
-            _buildActionButton(
-              icon: Icons.assessment,
-              label: 'Reports',
-              color: Colors.orange,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ReportsPage()),
-                );
-              },
+
+            // Reports (Manager+)
+            ManagerOrAbove(
+              child: _buildActionButton(
+                icon: Icons.assessment,
+                label: 'Reports',
+                color: Colors.orange,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ReportsPage(),
+                    ),
+                  );
+                },
+              ),
             ),
-            // _buildActionButton(
-            //   icon: Icons.inventory_2,
-            //   label: 'Inventory',
-            //   color: Colors.purple,
-            //   onTap: () {},
-            // ),
-            _buildActionButton(
-              icon: Icons.category,
-              label: 'Categories',
-              color: Colors.red,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CategoriesListPage(),
-                  ),
-                );
-              },
+
+            // Categories (Manager+)
+            ManagerOrAbove(
+              child: _buildActionButton(
+                icon: Icons.category,
+                label: 'Categories',
+                color: Colors.red,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CategoriesListPage(),
+                    ),
+                  );
+                },
+              ),
             ),
-            // Add these to the QuickActions grid in dashboard_page.dart
+
+            // Customers (All)
             _buildActionButton(
               icon: Icons.people,
               label: 'Customers',
@@ -124,31 +157,39 @@ class QuickActions extends StatelessWidget {
                 );
               },
             ),
-            _buildActionButton(
-              icon: Icons.business,
-              label: 'Suppliers',
-              color: Colors.brown,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SuppliersListPage(),
-                  ),
-                );
-              },
+
+            // Suppliers (Manager+)
+            ManagerOrAbove(
+              child: _buildActionButton(
+                icon: Icons.local_shipping,
+                label: 'Suppliers',
+                color: Colors.brown,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SuppliersListPage(),
+                    ),
+                  );
+                },
+              ),
             ),
-            _buildActionButton(
-              icon: Icons.analytics,
-              label: 'Analytics',
-              color: Colors.pink,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdvancedAnalyticsPage(),
-                  ),
-                );
-              },
+
+            // Analytics (Owner Only)
+            OwnerOnly(
+              child: _buildActionButton(
+                icon: Icons.analytics,
+                label: 'Analytics',
+                color: Colors.pink,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdvancedAnalyticsPage(),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),

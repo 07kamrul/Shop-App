@@ -68,6 +68,30 @@ class AuthService {
     }
   }
 
+  /// Simple register new user (without company)
+  static Future<Map<String, dynamic>> simpleRegister({
+    required String email,
+    required String password,
+    required String name,
+    String? phone,
+  }) async {
+    try {
+      final data = {
+        'email': email,
+        'password': password,
+        'name': name,
+        if (phone != null) 'phone': phone,
+      };
+
+      final response = await ApiService.post('/auth/simple-register', data);
+      return response;
+    } on ApiException catch (e) {
+      throw Exception(_normalizeErrorMessage(e));
+    } catch (e) {
+      throw Exception(_cleanExceptionMessage(e.toString()));
+    }
+  }
+
   /// Login user
   static Future<Map<String, dynamic>> login({
     required String email,
@@ -290,18 +314,14 @@ class AuthService {
         prefs.setString(_keyUserEmail, response['email']?.toString() ?? ''),
         prefs.setString(_keyUserName, response['name']?.toString() ?? ''),
         // Multi-tenant data
-        prefs.setString(
-          _keyCompanyId,
-          response['companyId']?.toString() ?? '',
-        ),
+        prefs.setString(_keyCompanyId, response['companyId']?.toString() ?? ''),
         prefs.setString(
           _keyCompanyName,
-          response['companyName']?.toString() ?? response['shopName']?.toString() ?? '',
+          response['companyName']?.toString() ??
+              response['shopName']?.toString() ??
+              '',
         ),
-        prefs.setString(
-          _keyUserRole,
-          response['role']?.toString() ?? 'Staff',
-        ),
+        prefs.setString(_keyUserRole, response['role']?.toString() ?? 'Staff'),
       ];
 
       if (response['phone'] != null) {

@@ -18,7 +18,6 @@ class _AuthFormState extends State<AuthForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  final _companyNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -60,7 +59,28 @@ class _AuthFormState extends State<AuthForm> {
                 ),
               );
           }
-          // Success → Go to Home
+          // Registration Success → Show message and go to Login
+          else if (state is AuthRegistrationSuccess) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: const Text('Registration Successful'),
+                content: Text(state.message),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.of(context).pushReplacementNamed('/login');
+                    },
+                    child: const Text('Login'),
+                  ),
+                ],
+              ),
+            );
+          }
+          // Login Success → Go to Home
           else if (state is AuthAuthenticated) {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
             Navigator.of(
@@ -84,13 +104,6 @@ class _AuthFormState extends State<AuthForm> {
                       controller: _nameController,
                       label: 'Full Name',
                       icon: Icons.person,
-                      validator: Validators.validateName,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _companyNameController,
-                      label: 'Company Name',
-                      icon: Icons.business,
                       validator: Validators.validateName,
                     ),
                     const SizedBox(height: 16),
@@ -230,7 +243,6 @@ class _AuthFormState extends State<AuthForm> {
             email: email,
             password: password,
             name: _nameController.text.trim(),
-            companyName: _companyNameController.text.trim(),
             phone: _phoneController.text.trim().isEmpty
                 ? null
                 : _phoneController.text.trim(),
@@ -245,7 +257,6 @@ class _AuthFormState extends State<AuthForm> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
-    _companyNameController.dispose();
     _phoneController.dispose();
     super.dispose();
   }

@@ -24,21 +24,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final response = await AuthService.register(
+      final response = await AuthService.simpleRegister(
         email: event.email,
         password: event.password,
         name: event.name,
-        companyName: event.companyName,
         phone: event.phone,
       );
 
-      final User user = response is User
-          ? response as User
-          : User.fromJson(response as Map<String, dynamic>);
-
-      emit(AuthAuthenticated(user: user));
+      final message = response['message'] as String;
+      emit(AuthRegistrationSuccess(message: message));
     } catch (e) {
-      emit(AuthError(error: e.toString())); // Already clean from above
+      emit(AuthError(error: e.toString()));
     }
   }
 
@@ -53,10 +49,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
 
-      // Handle both Map and User object responses
-      final User user = response is User
-          ? response as User
-          : User.fromJson(response as Map<String, dynamic>);
+      final User user = User.fromJson(response);
 
       emit(AuthAuthenticated(user: user));
     } catch (e) {
@@ -108,10 +101,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (isLoggedIn) {
         final userData = await AuthService.getCurrentUser();
         if (userData != null) {
-          // Handle both Map and User object responses
-          final User user = userData is User
-              ? userData as User
-              : User.fromJson(userData as Map<String, dynamic>);
+          final User user = User.fromJson(userData);
           emit(AuthAuthenticated(user: user));
         } else {
           emit(AuthUnauthenticated());
