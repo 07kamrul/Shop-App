@@ -24,27 +24,32 @@ class RBACHelper {
 
   /// Check if user can manage products (create, update, delete)
   static bool canManageProducts(UserRole role) {
-    return true; // All authenticated users can manage products
+    if (role == UserRole.unAssignedUser) return false;
+    return true; // All assigned users can manage products
   }
 
   /// Check if user can manage sales
   static bool canManageSales(UserRole role) {
-    return true; // All authenticated users can manage sales
+    if (role == UserRole.unAssignedUser) return false;
+    return true; // All assigned users can manage sales
   }
 
   /// Check if user can manage customers
   static bool canManageCustomers(UserRole role) {
-    return true; // All authenticated users can manage customers
+    if (role == UserRole.unAssignedUser) return false;
+    return true; // All assigned users can manage customers
   }
 
   /// Check if user can manage suppliers
   static bool canManageSuppliers(UserRole role) {
-    return true; // All authenticated users can manage suppliers
+    if (role == UserRole.unAssignedUser) return false;
+    return true; // All assigned users can manage suppliers
   }
 
   /// Check if user can manage categories
   static bool canManageCategories(UserRole role) {
-    return true; // All authenticated users can manage categories
+    if (role == UserRole.unAssignedUser) return false;
+    return true; // All assigned users can manage categories
   }
 
   /// Check if user can invite other users
@@ -78,6 +83,8 @@ class RBACHelper {
         return 'Manager';
       case UserRole.staff:
         return 'Staff';
+      case UserRole.unAssignedUser:
+        return 'Unassigned';
     }
   }
 
@@ -92,11 +99,17 @@ class RBACHelper {
         return 'Can view reports and manage team members';
       case UserRole.staff:
         return 'Can manage products, sales, customers, and suppliers';
+      case UserRole.unAssignedUser:
+        return 'Pending company assignment. Restricted access.';
     }
   }
 
   /// Get available routes for a user role
   static List<String> getAvailableRoutes(UserRole role) {
+    if (role == UserRole.unAssignedUser) {
+      return ['/dashboard'];
+    }
+
     final routes = <String>[
       '/dashboard',
       '/products',

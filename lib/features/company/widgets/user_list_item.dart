@@ -148,6 +148,8 @@ class UserListItem extends StatelessWidget {
         return Colors.blue;
       case UserRole.staff:
         return Colors.green;
+      case UserRole.unAssignedUser:
+        return Colors.grey;
     }
   }
 
@@ -161,6 +163,8 @@ class UserListItem extends StatelessWidget {
         return 'Manager';
       case UserRole.staff:
         return 'Staff';
+      case UserRole.unAssignedUser:
+        return 'Unassigned';
     }
   }
 

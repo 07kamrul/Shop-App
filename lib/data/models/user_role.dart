@@ -3,7 +3,8 @@ enum UserRole {
   systemAdmin(0, 'System Admin'),
   owner(1, 'Owner'),
   manager(2, 'Manager'),
-  staff(3, 'Staff');
+  staff(3, 'Staff'),
+  unAssignedUser(4, 'Unassigned');
 
   final int value;
   final String displayName;
@@ -12,7 +13,7 @@ enum UserRole {
 
   /// Parse from string (case-insensitive)
   static UserRole fromString(String? value) {
-    if (value == null || value.isEmpty) return UserRole.staff;
+    if (value == null || value.isEmpty) return UserRole.unAssignedUser;
 
     // Check if it's a numeric string (backend might send index)
     final intValue = int.tryParse(value);
@@ -23,20 +24,21 @@ enum UserRole {
     final lower = value.toLowerCase();
     // Special case for "SystemAdmin" as backend might send it without space
     if (lower == 'systemadmin') return UserRole.systemAdmin;
+    if (lower == 'unassigneduser') return UserRole.unAssignedUser;
 
     return UserRole.values.firstWhere(
       (role) => role.name.toLowerCase() == lower,
-      orElse: () => UserRole.staff,
+      orElse: () => UserRole.unAssignedUser,
     );
   }
 
   /// Parse from integer value
   static UserRole fromValue(int? value) {
-    if (value == null) return UserRole.staff;
+    if (value == null) return UserRole.unAssignedUser;
 
     return UserRole.values.firstWhere(
       (role) => role.value == value,
-      orElse: () => UserRole.staff,
+      orElse: () => UserRole.unAssignedUser,
     );
   }
 
@@ -45,6 +47,9 @@ enum UserRole {
 
   /// Check if user is owner
   bool get isOwner => this == UserRole.owner;
+
+  /// Check if user is unassigned
+  bool get isUnAssigned => this == UserRole.unAssignedUser;
 
   /// Check if user is manager or above (system admin, owner or manager)
   bool get isManagerOrAbove =>

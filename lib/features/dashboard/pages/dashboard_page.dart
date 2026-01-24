@@ -4,11 +4,13 @@ import 'package:shop_management/features/auth/pages/login_page.dart';
 import '../../../../blocs/auth/auth_bloc.dart';
 import '../../../../blocs/product/product_bloc.dart';
 import '../../../../blocs/sale/sale_bloc.dart';
-import '../../../data/models/user_model.dart';
+import '../../../../data/models/user_model.dart';
+import '../../../../data/models/user_role.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/stats_card.dart';
 import '../../admin/widgets/admin_stats_grid.dart';
 import '../../admin/widgets/admin_quick_actions.dart';
+import '../widgets/unassigned_dashboard.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -26,6 +28,7 @@ class DashboardPage extends StatelessWidget {
 
         final user = authState.user;
         final isSystemAdmin = user.role.isSystemAdmin;
+        final isUnassigned = user.role == UserRole.unAssignedUser;
 
         return MultiBlocProvider(
           providers: [
@@ -41,6 +44,8 @@ class DashboardPage extends StatelessWidget {
               title: Text(
                 isSystemAdmin
                     ? 'System Administration'
+                    : isUnassigned
+                    ? 'Join a Company'
                     : '${user.shopName} Dashboard',
               ),
               actions: [
@@ -48,13 +53,14 @@ class DashboardPage extends StatelessWidget {
                   icon: const Icon(Icons.logout),
                   onPressed: () {
                     context.read<AuthBloc>().add(AuthSignOutRequested());
-                    Navigator.of(context).push(
+                    Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
                         builder: (_) => BlocProvider.value(
                           value: context.read<AuthBloc>(),
                           child: LoginPage(),
                         ),
                       ),
+                      (route) => false,
                     );
                   },
                 ),
@@ -73,37 +79,41 @@ class DashboardPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Welcome Section
-                                _buildWelcomeSection(user),
+                                _buildWelcomeSection(user, isUnassigned),
                                 const SizedBox(height: 20),
 
-                                // Stats Section (Conditional)
-                                if (isSystemAdmin)
-                                  const AdminStatsGrid()
-                                else
-                                  SizedBox(
-                                    height: 250,
-                                    child: _buildStatsGrid(
+                                if (isUnassigned)
+                                  UnassignedDashboard(user: user)
+                                else ...[
+                                  // Stats Section (Conditional)
+                                  if (isSystemAdmin)
+                                    const AdminStatsGrid()
+                                  else
+                                    SizedBox(
+                                      height: 250,
+                                      child: _buildStatsGrid(
+                                        context,
+                                        saleState,
+                                        productState,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 24),
+
+                                  // Action Panels (Conditional)
+                                  if (isSystemAdmin)
+                                    const AdminQuickActions()
+                                  else
+                                    const QuickActions(),
+                                  const SizedBox(height: 20),
+
+                                  // Recent Activity (Only for non-admins usually, as admins don't have local sales)
+                                  if (!isSystemAdmin)
+                                    _buildRecentActivitySection(
                                       context,
                                       saleState,
-                                      productState,
+                                      constraints,
                                     ),
-                                  ),
-                                const SizedBox(height: 24),
-
-                                // Action Panels (Conditional)
-                                if (isSystemAdmin)
-                                  const AdminQuickActions()
-                                else
-                                  const QuickActions(),
-                                const SizedBox(height: 20),
-
-                                // Recent Activity (Only for non-admins usually, as admins don't have local sales)
-                                if (!isSystemAdmin)
-                                  _buildRecentActivitySection(
-                                    context,
-                                    saleState,
-                                    constraints,
-                                  ),
+                                ],
                               ],
                             ),
                           );
@@ -120,7 +130,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeSection(User user) {
+  Widget _buildWelcomeSection(User user, bool isUnassigned) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -130,7 +140,9 @@ class DashboardPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Here\'s your shop overview',
+          isUnassigned
+              ? 'Complete your profile to get started'
+              : 'Here\'s your shop overview',
           style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       ],

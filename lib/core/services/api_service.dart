@@ -174,7 +174,7 @@ class ApiService {
           }
         }
       }
-      
+
       return responseBody['message']?.toString() ??
           responseBody['error']?.toString() ??
           responseBody['title']?.toString() ??
@@ -258,7 +258,11 @@ class ApiService {
     }
 
     return _executeRequest(
-      () => http.post(uri, headers: headers, body: json.encode(data)),
+      () => http.post(
+        uri,
+        headers: headers,
+        body: data != null ? json.encode(data) : null,
+      ),
       'POST',
       endpoint,
     );
@@ -276,7 +280,11 @@ class ApiService {
     if (_isDebugMode) print('API PUT: $uri');
 
     return _executeRequest(
-      () => http.put(uri, headers: headers, body: json.encode(data)),
+      () => http.put(
+        uri,
+        headers: headers,
+        body: data != null ? json.encode(data) : null,
+      ),
       'PUT',
       endpoint,
     );
@@ -311,7 +319,11 @@ class ApiService {
     if (_isDebugMode) print('API PATCH: $uri');
 
     return _executeRequest(
-      () => http.patch(uri, headers: headers, body: json.encode(data)),
+      () => http.patch(
+        uri,
+        headers: headers,
+        body: data != null ? json.encode(data) : null,
+      ),
       'PATCH',
       endpoint,
     );

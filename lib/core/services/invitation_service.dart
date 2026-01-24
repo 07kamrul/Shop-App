@@ -14,6 +14,8 @@ class InvitationService {
         return 'Manager';
       case UserRole.staff:
         return 'Staff';
+      case UserRole.unAssignedUser:
+        return 'UnAssignedUser';
     }
   }
 
@@ -63,6 +65,46 @@ class InvitationService {
       };
 
       final response = await ApiService.post('/invitations/accept', data);
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Claim an invitation for the logged-in user
+  static Future<Map<String, dynamic>> claimInvitation(String token) async {
+    try {
+      final response = await ApiService.post('/invitations/claim', token);
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get pending invitations for the current user
+  static Future<List<dynamic>> getMyInvitations() async {
+    try {
+      final response = await ApiService.get('/invitations/my');
+      return response as List<dynamic>;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Accept an invitation by ID
+  static Future<Map<String, dynamic>> acceptInvitationById(String id) async {
+    try {
+      final response = await ApiService.post('/invitations/$id/accept', {});
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Reject an invitation by ID
+  static Future<Map<String, dynamic>> rejectInvitation(String id) async {
+    try {
+      final response = await ApiService.post('/invitations/$id/reject', {});
       return response;
     } catch (e) {
       rethrow;

@@ -500,6 +500,8 @@ class _UserActionsSheet extends StatelessWidget {
         return Colors.blue;
       case UserRole.staff:
         return Colors.green;
+      case UserRole.unAssignedUser:
+        return Colors.grey;
     }
   }
 
@@ -513,6 +515,8 @@ class _UserActionsSheet extends StatelessWidget {
         return 'Manager';
       case UserRole.staff:
         return 'Staff';
+      case UserRole.unAssignedUser:
+        return 'Unassigned';
     }
   }
 
@@ -526,6 +530,8 @@ class _UserActionsSheet extends StatelessWidget {
         return 'Can manage team and view reports';
       case UserRole.staff:
         return 'Can manage products and sales';
+      case UserRole.unAssignedUser:
+        return 'Restricted access';
     }
   }
 }
