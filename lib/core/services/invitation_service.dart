@@ -2,6 +2,21 @@ import 'package:shop_management/core/services/api_service.dart';
 import 'package:shop_management/data/models/user_role.dart';
 
 class InvitationService {
+  /// Convert Flutter enum name to C# enum name format
+  /// Flutter: systemAdmin -> C#: SystemAdmin
+  static String _toCSharpEnumName(UserRole role) {
+    switch (role) {
+      case UserRole.systemAdmin:
+        return 'SystemAdmin';
+      case UserRole.owner:
+        return 'Owner';
+      case UserRole.manager:
+        return 'Manager';
+      case UserRole.staff:
+        return 'Staff';
+    }
+  }
+
   /// Send an invitation
   static Future<Map<String, dynamic>> sendInvite({
     required String email,
@@ -9,11 +24,25 @@ class InvitationService {
     String? companyId,
   }) async {
     try {
-      final data = {'email': email, 'role': role.value, 'companyId': companyId};
+      // Build request data with camelCase property names (ASP.NET Core default)
+      // Backend DTO has PascalCase properties but JSON serializer handles conversion
+      final data = <String, dynamic>{
+        'email': email.trim(),
+        'role': _toCSharpEnumName(role),
+      };
 
+      // Only include companyId if it's provided and not empty
+      // Backend expects Guid? (nullable Guid), so send null if not provided
+      // If companyId is null or empty, don't include it in the request
+      if (companyId != null && companyId.trim().isNotEmpty) {
+        data['companyId'] = companyId.trim();
+      }
+
+      print('InvitationService: Sending invite with data: $data');
       final response = await ApiService.post('/invitations', data);
       return response;
     } catch (e) {
+      print('InvitationService: Error sending invite: $e');
       rethrow;
     }
   }
@@ -26,11 +55,11 @@ class InvitationService {
     String? phone,
   }) async {
     try {
-      final data = {
-        'token': token,
-        'name': name,
+      final data = <String, dynamic>{
+        'token': token.trim(),
+        'name': name.trim(),
         'password': password,
-        'phone': phone,
+        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
       };
 
       final response = await ApiService.post('/invitations/accept', data);

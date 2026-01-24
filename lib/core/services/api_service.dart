@@ -156,8 +156,28 @@ class ApiService {
   /// Extract error message from response body
   static String _extractErrorMessage(dynamic responseBody, int statusCode) {
     if (responseBody is Map<String, dynamic>) {
+      // Try to extract detailed error messages
+      if (responseBody['errors'] != null) {
+        // Model validation errors
+        final errors = responseBody['errors'];
+        if (errors is Map) {
+          final errorList = <String>[];
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorList.addAll(value.map((e) => '$key: $e'));
+            } else {
+              errorList.add('$key: $value');
+            }
+          });
+          if (errorList.isNotEmpty) {
+            return errorList.join(', ');
+          }
+        }
+      }
+      
       return responseBody['message']?.toString() ??
           responseBody['error']?.toString() ??
+          responseBody['title']?.toString() ??
           responseBody['errors']?.toString() ??
           'HTTP $statusCode';
     }

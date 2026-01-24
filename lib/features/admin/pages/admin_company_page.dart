@@ -276,6 +276,10 @@ class _AdminCompanyPageState extends State<AdminCompanyPage> {
                   name: nameController.text,
                   email: emailController.text,
                   phone: phoneController.text,
+                  description: 'No description provided',
+                  address: 'No address provided',
+                  currency: 'BDT',
+                  timezone: 'Asia/Dhaka',
                 );
                 _loadCompanies();
               } catch (e) {

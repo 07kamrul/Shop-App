@@ -161,4 +161,19 @@ class CompanyService {
       throw Exception('Failed to deactivate user: ${e.message}');
     }
   }
+
+  /// Search users by email or name (Autocomplete)
+  static Future<List<CompanyUser>> searchUsers(String query) async {
+    try {
+      final response = await ApiService.get(
+        '/company/users/search?query=$query',
+      );
+      final List<dynamic> data = response is List
+          ? response
+          : response['data'] ?? [];
+      return data.map((json) => CompanyUser.fromJson(json)).toList();
+    } on ApiException catch (e) {
+      throw Exception('Failed to search users: ${e.message}');
+    }
+  }
 }

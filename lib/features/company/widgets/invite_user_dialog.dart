@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_management/blocs/auth/auth_bloc.dart';
+import 'package:shop_management/core/services/company_service.dart';
 import 'package:shop_management/core/services/invitation_service.dart';
 import 'package:shop_management/core/utils/rbac_helper.dart';
+import 'package:shop_management/data/models/company_model.dart';
 import 'package:shop_management/data/models/user_role.dart';
 
 class InviteUserDialog extends StatefulWidget {
@@ -21,6 +24,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   final _emailController = TextEditingController();
   late UserRole _selectedRole;
   bool _isLoading = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -31,6 +35,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   @override
   void dispose() {
     _emailController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -38,7 +43,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        final response = await InvitationService.sendInvite(
+        await InvitationService.sendInvite(
           email: _emailController.text.trim(),
           role: _selectedRole,
           companyId: widget.companyId,
@@ -47,9 +52,14 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
         if (!mounted) return;
         Navigator.pop(context); // Close invite dialog
 
-        // Show token dialog (Simulation)
-        final token = response['token'] as String;
-        _showTokenDialog(token);
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invitation successfully sent'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(
@@ -59,50 +69,6 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
         if (mounted) setState(() => _isLoading = false);
       }
     }
-  }
-
-  void _showTokenDialog(String token) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Invitation Sent'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Invitation sent successfully!'),
-            const SizedBox(height: 16),
-            const Text(
-              'For testing purposes, here is the invitation token:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            SelectableText(
-              token,
-              style: const TextStyle(
-                fontFamily: 'Courier',
-                backgroundColor: Colors.black12,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: token));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Token copied to clipboard')),
-              );
-            },
-            child: const Text('Copy Token'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
   }
 
   List<UserRole> _getAllowedRoles(UserRole currentUserRole) {
@@ -149,14 +115,16 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
                   children: [
                     const Icon(Icons.person_add, size: 28),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Invite Team Member',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    const Expanded(
+                      child: Text(
+                        'Invite Team Member',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
@@ -164,22 +132,110 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Email is required';
+                RawAutocomplete<CompanyUser>(
+                  textEditingController: _emailController,
+                  focusNode: FocusNode(),
+                  optionsBuilder: (TextEditingValue textEditingValue) async {
+                    final query = textEditingValue.text.trim();
+                    if (query.isEmpty || query.length < 2) {
+                      return const Iterable<CompanyUser>.empty();
                     }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
+
+                    final completer = Completer<Iterable<CompanyUser>>();
+                    _debounce?.cancel();
+                    _debounce = Timer(
+                      const Duration(milliseconds: 300),
+                      () async {
+                        try {
+                          final results = await CompanyService.searchUsers(
+                            query,
+                          );
+                          if (!completer.isCompleted) {
+                            completer.complete(results);
+                          }
+                        } catch (e) {
+                          if (!completer.isCompleted) {
+                            completer.complete(
+                              const Iterable<CompanyUser>.empty(),
+                            );
+                          }
+                        }
+                      },
+                    );
+
+                    return completer.future;
+                  },
+                  displayStringForOption: (CompanyUser option) => option.email,
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email *',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.email),
+                            hintText: 'Search or enter email',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Email is required';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
+                          onFieldSubmitted: (value) {
+                            onFieldSubmitted();
+                          },
+                        );
+                      },
+                  optionsViewBuilder: (context, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4.0,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: 200,
+                            maxWidth: MediaQuery.of(context).size.width * 0.7,
+                          ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final CompanyUser option = options.elementAt(
+                                index,
+                              );
+                              return ListTile(
+                                leading: const Icon(Icons.person_outline),
+                                title: Text(
+                                  option.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  option.email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  onSelected(option);
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  onSelected: (CompanyUser selection) {
+                    _emailController.text = selection.email;
+                    // Optionally set role if user already has one?
+                    // But usually we want to invite them with a NEW role in THIS company.
                   },
                 ),
                 const SizedBox(height: 24),
