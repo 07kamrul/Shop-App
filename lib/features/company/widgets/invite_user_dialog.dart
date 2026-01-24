@@ -7,7 +7,10 @@ import 'package:shop_management/core/utils/rbac_helper.dart';
 import 'package:shop_management/data/models/user_role.dart';
 
 class InviteUserDialog extends StatefulWidget {
-  const InviteUserDialog({super.key});
+  final String? companyId;
+  final UserRole? initialRole;
+
+  const InviteUserDialog({super.key, this.companyId, this.initialRole});
 
   @override
   State<InviteUserDialog> createState() => _InviteUserDialogState();
@@ -16,8 +19,14 @@ class InviteUserDialog extends StatefulWidget {
 class _InviteUserDialogState extends State<InviteUserDialog> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  UserRole _selectedRole = UserRole.staff;
+  late UserRole _selectedRole;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.initialRole ?? UserRole.staff;
+  }
 
   @override
   void dispose() {
@@ -32,6 +41,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
         final response = await InvitationService.sendInvite(
           email: _emailController.text.trim(),
           role: _selectedRole,
+          companyId: widget.companyId,
         );
 
         if (!mounted) return;
@@ -97,7 +107,12 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
 
   List<UserRole> _getAllowedRoles(UserRole currentUserRole) {
     if (currentUserRole == UserRole.systemAdmin) {
-      return [UserRole.systemAdmin, UserRole.manager];
+      return [
+        UserRole.systemAdmin,
+        UserRole.owner,
+        UserRole.manager,
+        UserRole.staff,
+      ];
     } else if (currentUserRole == UserRole.owner ||
         currentUserRole == UserRole.manager) {
       return [UserRole.manager, UserRole.staff];

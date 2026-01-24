@@ -14,6 +14,12 @@ enum UserRole {
   static UserRole fromString(String? value) {
     if (value == null || value.isEmpty) return UserRole.staff;
 
+    // Check if it's a numeric string (backend might send index)
+    final intValue = int.tryParse(value);
+    if (intValue != null) {
+      return fromValue(intValue);
+    }
+
     final lower = value.toLowerCase();
     // Special case for "SystemAdmin" as backend might send it without space
     if (lower == 'systemadmin') return UserRole.systemAdmin;

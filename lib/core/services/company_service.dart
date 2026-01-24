@@ -13,6 +13,47 @@ class CompanyService {
     }
   }
 
+  /// Get all companies (System Admin only)
+  static Future<List<Company>> getAllCompanies() async {
+    try {
+      final response = await ApiService.get('/company/all');
+      final List<dynamic> data = response is List
+          ? response
+          : response['data'] ?? [];
+      return data.map((json) => Company.fromJson(json)).toList();
+    } on ApiException catch (e) {
+      throw Exception('Failed to load all companies: ${e.message}');
+    }
+  }
+
+  /// Create a new company (System Admin only)
+  static Future<Company> createCompany({
+    required String name,
+    String? description,
+    String? phone,
+    String? email,
+    String? address,
+    String? currency,
+    String? timezone,
+  }) async {
+    try {
+      final data = {
+        'name': name,
+        'description': description,
+        'phone': phone,
+        'email': email,
+        'address': address,
+        'currency': currency,
+        'timezone': timezone,
+      };
+
+      final response = await ApiService.post('/company', data);
+      return Company.fromJson(response);
+    } on ApiException catch (e) {
+      throw Exception('Failed to create company: ${e.message}');
+    }
+  }
+
   /// Update company details (Owner only)
   static Future<Company> updateCompany({
     String? name,
@@ -46,7 +87,9 @@ class CompanyService {
   static Future<List<CompanyUser>> getUsers() async {
     try {
       final response = await ApiService.get('/company/users');
-      final List<dynamic> data = response is List ? response : response['data'] ?? [];
+      final List<dynamic> data = response is List
+          ? response
+          : response['data'] ?? [];
       return data.map((json) => CompanyUser.fromJson(json)).toList();
     } on ApiException catch (e) {
       throw Exception('Failed to load team members: ${e.message}');
@@ -86,9 +129,7 @@ class CompanyService {
     required UserRole role,
   }) async {
     try {
-      await ApiService.put('/company/users/$userId/role', {
-        'role': role.name,
-      });
+      await ApiService.put('/company/users/$userId/role', {'role': role.name});
     } on ApiException catch (e) {
       throw Exception('Failed to update user role: ${e.message}');
     }

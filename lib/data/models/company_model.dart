@@ -101,19 +101,19 @@ class Company extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        phone,
-        email,
-        address,
-        logoUrl,
-        currency,
-        timezone,
-        isActive,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    name,
+    description,
+    phone,
+    email,
+    address,
+    logoUrl,
+    currency,
+    timezone,
+    isActive,
+    createdAt,
+    updatedAt,
+  ];
 }
 
 /// Company user model for team management
@@ -126,6 +126,7 @@ class CompanyUser extends Equatable {
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final bool isActive;
+  final String? shopName;
 
   const CompanyUser({
     required this.id,
@@ -136,6 +137,7 @@ class CompanyUser extends Equatable {
     required this.createdAt,
     this.lastLoginAt,
     this.isActive = true,
+    this.shopName,
   });
 
   factory CompanyUser.fromJson(Map<String, dynamic> json) {
@@ -152,6 +154,7 @@ class CompanyUser extends Equatable {
           ? DateTime.parse(json['lastLoginAt'])
           : null,
       isActive: json['isActive'] ?? true,
+      shopName: json['shopName']?.toString(),
     );
   }
 
@@ -170,13 +173,13 @@ class CompanyUser extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        email,
-        name,
-        phone,
-        role,
-        createdAt,
-        lastLoginAt,
-        isActive,
-      ];
+    id,
+    email,
+    name,
+    phone,
+    role,
+    createdAt,
+    lastLoginAt,
+    isActive,
+  ];
 }

@@ -98,6 +98,27 @@ class UserListItem extends StatelessWidget {
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ],
+                if (user.shopName != null && user.shopName != 'N/A') ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      user.shopName!,
+                      style: TextStyle(
+                        color: Colors.orange[800],
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
             if (user.lastLoginAt != null) ...[

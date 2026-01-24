@@ -7,6 +7,8 @@ import '../../../../blocs/sale/sale_bloc.dart';
 import '../../../data/models/user_model.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/stats_card.dart';
+import '../../admin/widgets/admin_stats_grid.dart';
+import '../../admin/widgets/admin_quick_actions.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -23,6 +25,7 @@ class DashboardPage extends StatelessWidget {
         }
 
         final user = authState.user;
+        final isSystemAdmin = user.role.isSystemAdmin;
 
         return MultiBlocProvider(
           providers: [
@@ -35,12 +38,15 @@ class DashboardPage extends StatelessWidget {
           ],
           child: Scaffold(
             appBar: AppBar(
-              title: Text('${user.shopName} Dashboard'),
+              title: Text(
+                isSystemAdmin
+                    ? 'System Administration'
+                    : '${user.shopName} Dashboard',
+              ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.logout),
                   onPressed: () {
-                    // Dispatch sign out event to AuthBloc
                     context.read<AuthBloc>().add(AuthSignOutRequested());
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -70,27 +76,34 @@ class DashboardPage extends StatelessWidget {
                                 _buildWelcomeSection(user),
                                 const SizedBox(height: 20),
 
-                                // Stats Grid - Fixed height
-                                SizedBox(
-                                  height: 200,
-                                  child: _buildStatsGrid(
+                                // Stats Section (Conditional)
+                                if (isSystemAdmin)
+                                  const AdminStatsGrid()
+                                else
+                                  SizedBox(
+                                    height: 250,
+                                    child: _buildStatsGrid(
+                                      context,
+                                      saleState,
+                                      productState,
+                                    ),
+                                  ),
+                                const SizedBox(height: 24),
+
+                                // Action Panels (Conditional)
+                                if (isSystemAdmin)
+                                  const AdminQuickActions()
+                                else
+                                  const QuickActions(),
+                                const SizedBox(height: 20),
+
+                                // Recent Activity (Only for non-admins usually, as admins don't have local sales)
+                                if (!isSystemAdmin)
+                                  _buildRecentActivitySection(
                                     context,
                                     saleState,
-                                    productState,
+                                    constraints,
                                   ),
-                                ),
-                                const SizedBox(height: 20),
-
-                                // Quick Actions
-                                const QuickActions(),
-                                const SizedBox(height: 20),
-
-                                // Recent Activity Section
-                                _buildRecentActivitySection(
-                                  context,
-                                  saleState,
-                                  constraints,
-                                ),
                               ],
                             ),
                           );
