@@ -58,10 +58,20 @@ class UserRemoved extends CompanyState {}
 
 /// Error state
 class CompanyError extends CompanyState {
-  final String message;
+  final String error;
 
-  const CompanyError({required this.message});
+  const CompanyError({required this.error});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [error];
+}
+
+/// Company created successfully
+class CompanyCreated extends CompanyState {
+  final Company company;
+
+  const CompanyCreated({required this.company});
+
+  @override
+  List<Object?> get props => [company];
 }

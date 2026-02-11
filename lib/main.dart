@@ -8,6 +8,9 @@ import 'package:shop_management/core/services/api_service.dart';
 import 'blocs/auth/auth_bloc.dart';
 import 'features/auth/pages/login_page.dart';
 import 'features/auth/pages/register_page.dart';
+import 'features/auth/widgets/auth_router.dart';
+import 'features/company/pages/company_selection_page.dart';
+import 'features/branch/pages/branch_selection_page.dart';
 import 'features/dashboard/pages/dashboard_page.dart';
 
 void main() async {
@@ -53,11 +56,13 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginPage(),
           '/register': (context) => const RegisterPage(),
+          '/company-selection': (context) => const CompanySelectionPage(),
+          '/branch-selection': (context) => const BranchSelectionPage(),
           '/home': (context) => const DashboardPage(),
         },
 
-        // Initial route
-        initialRoute: '/login',
+        // Use AuthRouter as home
+        home: const AuthRouter(),
 
         // Optional: Fallback if route not found
         onUnknownRoute: (settings) {

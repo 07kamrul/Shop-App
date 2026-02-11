@@ -116,3 +116,13 @@ class DeactivateUser extends CompanyEvent {
   @override
   List<Object?> get props => [userId];
 }
+
+/// Create a new company
+class CreateCompany extends CompanyEvent {
+  final Company company;
+
+  const CreateCompany({required this.company});
+
+  @override
+  List<Object?> get props => [company];
+}

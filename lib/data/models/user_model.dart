@@ -8,10 +8,14 @@ class User extends Equatable {
   final String? phone;
   final String? companyId;
   final String? companyName;
+  final String? branchId;
+  final String? branchName;
   final UserRole role;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isEmailVerified;
+  final bool hasCompany;
+  final bool hasBranch;
 
   // Legacy field - kept for backwards compatibility
   String get shopName => companyName ?? '';
@@ -23,10 +27,14 @@ class User extends Equatable {
     this.phone,
     this.companyId,
     this.companyName,
+    this.branchId,
+    this.branchName,
     this.role = UserRole.staff,
     required this.createdAt,
     required this.updatedAt,
     required this.isEmailVerified,
+    this.hasCompany = false,
+    this.hasBranch = false,
   });
 
   // Permission helpers
@@ -44,16 +52,20 @@ class User extends Equatable {
       email: json['email'] ?? '',
       name: json['name'] ?? '',
       phone: json['phone'],
-      companyId: json['companyId'],
-      companyName: json['companyName'] ?? json['shopName'] ?? '',
+      companyId: json['company_id'] ?? json['companyId'],
+      companyName: json['company_name'] ?? json['companyName'] ?? json['shopName'] ?? '',
+      branchId: json['branch_id'] ?? json['branchId'],
+      branchName: json['branch_name'] ?? json['branchName'],
       role: UserRole.fromString(json['role']?.toString()),
       createdAt: DateTime.parse(
-        json['createdAt'] ?? DateTime.now().toIso8601String(),
+        json['createdAt'] ?? json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
       updatedAt: DateTime.parse(
-        json['updatedAt'] ?? DateTime.now().toIso8601String(),
+        json['updatedAt'] ?? json['updated_at'] ?? DateTime.now().toIso8601String(),
       ),
-      isEmailVerified: json['isEmailVerified'] ?? false,
+      isEmailVerified: json['isEmailVerified'] ?? json['is_email_verified'] ?? false,
+      hasCompany: json['has_company'] ?? json['hasCompany'] ?? false,
+      hasBranch: json['has_branch'] ?? json['hasBranch'] ?? false,
     );
   }
 
@@ -102,10 +114,14 @@ class User extends Equatable {
     String? phone,
     String? companyId,
     String? companyName,
+    String? branchId,
+    String? branchName,
     UserRole? role,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isEmailVerified,
+    bool? hasCompany,
+    bool? hasBranch,
   }) {
     return User(
       id: id ?? this.id,
@@ -114,10 +130,14 @@ class User extends Equatable {
       phone: phone ?? this.phone,
       companyId: companyId ?? this.companyId,
       companyName: companyName ?? this.companyName,
+      branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      hasCompany: hasCompany ?? this.hasCompany,
+      hasBranch: hasBranch ?? this.hasBranch,
     );
   }
 
@@ -129,9 +149,13 @@ class User extends Equatable {
         phone,
         companyId,
         companyName,
+        branchId,
+        branchName,
         role,
         createdAt,
         updatedAt,
         isEmailVerified,
+        hasCompany,
+        hasBranch,
       ];
 }

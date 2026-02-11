@@ -59,7 +59,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
           if (state is CompanyError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.error),
                 backgroundColor: Colors.red,
               ),
             );
@@ -104,7 +104,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    state.message,
+                    state.error,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                   ),

@@ -41,12 +41,24 @@ class DashboardPage extends StatelessWidget {
           ],
           child: Scaffold(
             appBar: AppBar(
-              title: Text(
-                isSystemAdmin
-                    ? 'System Administration'
-                    : isUnassigned
-                    ? 'Join a Company'
-                    : '${user.shopName} Dashboard',
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isSystemAdmin
+                        ? 'System Administration'
+                        : isUnassigned
+                        ? 'Join a Company'
+                        : '${user.shopName} Dashboard',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  if (user.branchName != null && user.branchName!.isNotEmpty)
+                    Text(
+                      user.branchName!,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                    ),
+                ],
               ),
               actions: [
                 IconButton(

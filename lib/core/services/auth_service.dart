@@ -15,7 +15,11 @@ class AuthService {
   // Multi-tenant keys
   static const _keyCompanyId = 'companyId';
   static const _keyCompanyName = 'companyName';
+  static const _keyBranchId = 'branchId';
+  static const _keyBranchName = 'branchName';
   static const _keyUserRole = 'userRole';
+  static const _keyHasCompany = 'hasCompany';
+  static const _keyHasBranch = 'hasBranch';
 
   static const _authKeys = [
     _keyToken,
@@ -26,7 +30,11 @@ class AuthService {
     _keyUserPhone,
     _keyCompanyId,
     _keyCompanyName,
+    _keyBranchId,
+    _keyBranchName,
     _keyUserRole,
+    _keyHasCompany,
+    _keyHasBranch,
   ];
 
   /// Get or initialize SharedPreferences instance
@@ -214,7 +222,14 @@ class AuthService {
         'phone': prefs.getString(_keyUserPhone),
         'companyId': prefs.getString(_keyCompanyId),
         'companyName': prefs.getString(_keyCompanyName),
+        'branchId': prefs.getString(_keyBranchId),
+        'branchName': prefs.getString(_keyBranchName),
         'role': prefs.getString(_keyUserRole),
+        'hasCompany': prefs.getBool(_keyHasCompany) ?? false,
+        'hasBranch': prefs.getBool(_keyHasBranch) ?? false,
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'isEmailVerified': false,
       };
     } catch (e) {
       return null;
@@ -248,6 +263,27 @@ class AuthService {
       return prefs.getString(_keyUserRole);
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Save token
+  static Future<void> saveToken(String token) async {
+    try {
+      final prefs = await _getPrefs();
+      await prefs.setString(_keyToken, token);
+      ApiService.clearHeadersCache();
+    } catch (e) {
+      throw Exception('Failed to save token');
+    }
+  }
+
+  /// Save refresh token
+  static Future<void> saveRefreshToken(String refreshToken) async {
+    try {
+      final prefs = await _getPrefs();
+      await prefs.setString(_keyRefreshToken, refreshToken);
+    } catch (e) {
+      throw Exception('Failed to save refresh token');
     }
   }
 
@@ -308,20 +344,25 @@ class AuthService {
         prefs.setString(_keyToken, response['token']?.toString() ?? ''),
         prefs.setString(
           _keyRefreshToken,
-          response['refreshToken']?.toString() ?? '',
+          response['refreshToken']?.toString() ?? response['refresh_token']?.toString() ?? '',
         ),
         prefs.setString(_keyUserId, response['id']?.toString() ?? ''),
         prefs.setString(_keyUserEmail, response['email']?.toString() ?? ''),
         prefs.setString(_keyUserName, response['name']?.toString() ?? ''),
         // Multi-tenant data
-        prefs.setString(_keyCompanyId, response['companyId']?.toString() ?? ''),
+        prefs.setString(_keyCompanyId, response['companyId']?.toString() ?? response['company_id']?.toString() ?? ''),
         prefs.setString(
           _keyCompanyName,
           response['companyName']?.toString() ??
+              response['company_name']?.toString() ??
               response['shopName']?.toString() ??
               '',
         ),
+        prefs.setString(_keyBranchId, response['branchId']?.toString() ?? response['branch_id']?.toString() ?? ''),
+        prefs.setString(_keyBranchName, response['branchName']?.toString() ?? response['branch_name']?.toString() ?? ''),
         prefs.setString(_keyUserRole, response['role']?.toString() ?? 'Staff'),
+        prefs.setBool(_keyHasCompany, response['hasCompany'] ?? response['has_company'] ?? false),
+        prefs.setBool(_keyHasBranch, response['hasBranch'] ?? response['has_branch'] ?? false),
       ];
 
       if (response['phone'] != null) {

@@ -47,7 +47,7 @@ class CompanyService {
         'timezone': timezone,
       };
 
-      final response = await ApiService.post('/company', data);
+      final response = await ApiService.post('/company/create', data);
       return Company.fromJson(response);
     } on ApiException catch (e) {
       throw Exception('Failed to create company: ${e.message}');

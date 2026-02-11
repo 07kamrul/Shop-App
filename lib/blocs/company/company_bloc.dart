@@ -11,6 +11,7 @@ part 'company_state.dart';
 class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
   CompanyBloc() : super(CompanyInitial()) {
     on<LoadCompany>(_onLoadCompany);
+    on<CreateCompany>(_onCreateCompany);
     on<UpdateCompany>(_onUpdateCompany);
     on<LoadCompanyUsers>(_onLoadCompanyUsers);
     on<InviteUser>(_onInviteUser);
@@ -29,7 +30,28 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       final company = await CompanyService.getCompany();
       emit(CompanyLoaded(company: company));
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onCreateCompany(
+    CreateCompany event,
+    Emitter<CompanyState> emit,
+  ) async {
+    emit(CompanyLoading());
+    try {
+      final company = await CompanyService.createCompany(
+        name: event.company.name,
+        description: event.company.description,
+        phone: event.company.phone,
+        email: event.company.email,
+        address: event.company.address,
+        currency: event.company.currency,
+        timezone: event.company.timezone,
+      );
+      emit(CompanyCreated(company: company));
+    } catch (e) {
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -52,7 +74,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       emit(CompanyLoaded(company: company));
       emit(CompanyUpdated(company: company));
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -65,7 +87,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       final users = await CompanyService.getUsers();
       emit(CompanyUsersLoaded(users: users));
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -87,7 +109,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       emit(CompanyUsersLoaded(users: users));
       emit(UserInvited());
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -106,7 +128,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       emit(CompanyUsersLoaded(users: users));
       emit(UserRoleUpdated());
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -122,7 +144,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       emit(CompanyUsersLoaded(users: users));
       emit(UserRemoved());
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -137,7 +159,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       final users = await CompanyService.getUsers();
       emit(CompanyUsersLoaded(users: users));
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -152,7 +174,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       final users = await CompanyService.getUsers();
       emit(CompanyUsersLoaded(users: users));
     } catch (e) {
-      emit(CompanyError(message: e.toString().replaceAll('Exception: ', '')));
+      emit(CompanyError(error: e.toString().replaceAll('Exception: ', '')));
     }
   }
 }
