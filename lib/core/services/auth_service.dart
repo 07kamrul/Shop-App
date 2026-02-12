@@ -20,6 +20,7 @@ class AuthService {
   static const _keyUserRole = 'userRole';
   static const _keyHasCompany = 'hasCompany';
   static const _keyHasBranch = 'hasBranch';
+  static const _keyIsApproved = 'isApproved';
 
   static const _authKeys = [
     _keyToken,
@@ -35,6 +36,7 @@ class AuthService {
     _keyUserRole,
     _keyHasCompany,
     _keyHasBranch,
+    _keyIsApproved,
   ];
 
   /// Get or initialize SharedPreferences instance
@@ -76,12 +78,13 @@ class AuthService {
     }
   }
 
-  /// Simple register new user (without company)
+  /// Simple register new user (with optional company)
   static Future<Map<String, dynamic>> simpleRegister({
     required String email,
     required String password,
     required String name,
     String? phone,
+    String? companyId,
   }) async {
     try {
       final data = {
@@ -89,6 +92,7 @@ class AuthService {
         'password': password,
         'name': name,
         if (phone != null) 'phone': phone,
+        if (companyId != null && companyId.isNotEmpty) 'company_id': companyId,
       };
 
       final response = await ApiService.post('/auth/simple-register', data);
@@ -227,6 +231,7 @@ class AuthService {
         'role': prefs.getString(_keyUserRole),
         'hasCompany': prefs.getBool(_keyHasCompany) ?? false,
         'hasBranch': prefs.getBool(_keyHasBranch) ?? false,
+        'isApproved': prefs.getBool(_keyIsApproved) ?? false,
         'createdAt': DateTime.now().toIso8601String(),
         'updatedAt': DateTime.now().toIso8601String(),
         'isEmailVerified': false,
@@ -344,13 +349,20 @@ class AuthService {
         prefs.setString(_keyToken, response['token']?.toString() ?? ''),
         prefs.setString(
           _keyRefreshToken,
-          response['refreshToken']?.toString() ?? response['refresh_token']?.toString() ?? '',
+          response['refreshToken']?.toString() ??
+              response['refresh_token']?.toString() ??
+              '',
         ),
         prefs.setString(_keyUserId, response['id']?.toString() ?? ''),
         prefs.setString(_keyUserEmail, response['email']?.toString() ?? ''),
         prefs.setString(_keyUserName, response['name']?.toString() ?? ''),
         // Multi-tenant data
-        prefs.setString(_keyCompanyId, response['companyId']?.toString() ?? response['company_id']?.toString() ?? ''),
+        prefs.setString(
+          _keyCompanyId,
+          response['companyId']?.toString() ??
+              response['company_id']?.toString() ??
+              '',
+        ),
         prefs.setString(
           _keyCompanyName,
           response['companyName']?.toString() ??
@@ -358,11 +370,31 @@ class AuthService {
               response['shopName']?.toString() ??
               '',
         ),
-        prefs.setString(_keyBranchId, response['branchId']?.toString() ?? response['branch_id']?.toString() ?? ''),
-        prefs.setString(_keyBranchName, response['branchName']?.toString() ?? response['branch_name']?.toString() ?? ''),
+        prefs.setString(
+          _keyBranchId,
+          response['branchId']?.toString() ??
+              response['branch_id']?.toString() ??
+              '',
+        ),
+        prefs.setString(
+          _keyBranchName,
+          response['branchName']?.toString() ??
+              response['branch_name']?.toString() ??
+              '',
+        ),
         prefs.setString(_keyUserRole, response['role']?.toString() ?? 'Staff'),
-        prefs.setBool(_keyHasCompany, response['hasCompany'] ?? response['has_company'] ?? false),
-        prefs.setBool(_keyHasBranch, response['hasBranch'] ?? response['has_branch'] ?? false),
+        prefs.setBool(
+          _keyHasCompany,
+          response['hasCompany'] ?? response['has_company'] ?? false,
+        ),
+        prefs.setBool(
+          _keyHasBranch,
+          response['hasBranch'] ?? response['has_branch'] ?? false,
+        ),
+        prefs.setBool(
+          _keyIsApproved,
+          response['isApproved'] ?? response['is_approved'] ?? false,
+        ),
       ];
 
       if (response['phone'] != null) {

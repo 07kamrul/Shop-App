@@ -29,6 +29,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
         name: event.name,
         phone: event.phone,
+        companyId: event.companyId,
       );
 
       final message = response['message'] as String;

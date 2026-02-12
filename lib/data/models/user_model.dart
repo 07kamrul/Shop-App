@@ -16,6 +16,7 @@ class User extends Equatable {
   final bool isEmailVerified;
   final bool hasCompany;
   final bool hasBranch;
+  final bool isApproved;
 
   // Legacy field - kept for backwards compatibility
   String get shopName => companyName ?? '';
@@ -35,6 +36,7 @@ class User extends Equatable {
     required this.isEmailVerified,
     this.hasCompany = false,
     this.hasBranch = false,
+    this.isApproved = false,
   });
 
   // Permission helpers
@@ -66,6 +68,7 @@ class User extends Equatable {
       isEmailVerified: json['isEmailVerified'] ?? json['is_email_verified'] ?? false,
       hasCompany: json['has_company'] ?? json['hasCompany'] ?? false,
       hasBranch: json['has_branch'] ?? json['hasBranch'] ?? false,
+      isApproved: json['is_approved'] ?? json['isApproved'] ?? false,
     );
   }
 
@@ -122,6 +125,7 @@ class User extends Equatable {
     bool? isEmailVerified,
     bool? hasCompany,
     bool? hasBranch,
+    bool? isApproved,
   }) {
     return User(
       id: id ?? this.id,
@@ -138,6 +142,7 @@ class User extends Equatable {
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       hasCompany: hasCompany ?? this.hasCompany,
       hasBranch: hasBranch ?? this.hasBranch,
+      isApproved: isApproved ?? this.isApproved,
     );
   }
 
@@ -157,5 +162,6 @@ class User extends Equatable {
         isEmailVerified,
         hasCompany,
         hasBranch,
+        isApproved,
       ];
 }

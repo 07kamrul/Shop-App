@@ -45,3 +45,6 @@ app.*.map.json
 /android/app/release
 CLAUDE.md
 README.md
+lib/core/services/api_service.dart
+lib/core/services/auth_service.dart
+lib/core/services/auth_service.dart

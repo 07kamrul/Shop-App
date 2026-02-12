@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shop_management/features/auth/pages/register_page.dart';
-import 'package:shop_management/features/auth/pages/accept_invite_page.dart';
 import '../../../../../blocs/auth/auth_bloc.dart';
 import '../widgets/auth_form.dart';
 
@@ -82,18 +81,6 @@ class LoginPage extends StatelessWidget {
                             child: const Text('Sign Up'),
                           ),
                         ],
-                      ),
-                      TextButton(
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const AcceptInvitePage(),
-                                  ),
-                                );
-                              },
-                        child: const Text('Received an invitation? Join here'),
                       ),
                       const SizedBox(height: 40), // Bottom padding
                     ],

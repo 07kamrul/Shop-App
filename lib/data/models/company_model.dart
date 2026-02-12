@@ -5,12 +5,14 @@ import 'user_role.dart';
 class Company extends Equatable {
   final String id;
   final String name;
+  final String? businessType;
   final String? description;
   final String? phone;
   final String? email;
   final String? address;
   final String? logoUrl;
   final String currency;
+  final String? country;
   final String? timezone;
   final bool isActive;
   final DateTime createdAt;
@@ -19,12 +21,14 @@ class Company extends Equatable {
   const Company({
     required this.id,
     required this.name,
+    this.businessType,
     this.description,
     this.phone,
     this.email,
     this.address,
     this.logoUrl,
     this.currency = 'BDT',
+    this.country,
     this.timezone,
     this.isActive = true,
     required this.createdAt,
@@ -35,19 +39,21 @@ class Company extends Equatable {
     return Company(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
+      businessType: json['business_type']?.toString() ?? json['businessType']?.toString(),
       description: json['description']?.toString(),
       phone: json['phone']?.toString(),
       email: json['email']?.toString(),
       address: json['address']?.toString(),
-      logoUrl: json['logoUrl']?.toString(),
+      logoUrl: json['logo_url']?.toString() ?? json['logoUrl']?.toString(),
       currency: json['currency']?.toString() ?? 'BDT',
+      country: json['country']?.toString(),
       timezone: json['timezone']?.toString(),
-      isActive: json['isActive'] ?? true,
+      isActive: json['is_active'] ?? json['isActive'] ?? true,
       createdAt: DateTime.parse(
-        json['createdAt'] ?? DateTime.now().toIso8601String(),
+        json['created_at'] ?? json['createdAt'] ?? DateTime.now().toIso8601String(),
       ),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+      updatedAt: (json['updated_at'] ?? json['updatedAt']) != null
+          ? DateTime.parse(json['updated_at'] ?? json['updatedAt'])
           : null,
     );
   }
@@ -56,28 +62,32 @@ class Company extends Equatable {
     return {
       'id': id,
       'name': name,
+      if (businessType != null) 'business_type': businessType,
       'description': description,
       'phone': phone,
       'email': email,
       'address': address,
-      'logoUrl': logoUrl,
+      'logo_url': logoUrl,
       'currency': currency,
+      if (country != null) 'country': country,
       'timezone': timezone,
-      'isActive': isActive,
-      'createdAt': createdAt.toIso8601String(),
-      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+      'is_active': isActive,
+      'created_at': createdAt.toIso8601String(),
+      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
   }
 
   Company copyWith({
     String? id,
     String? name,
+    String? businessType,
     String? description,
     String? phone,
     String? email,
     String? address,
     String? logoUrl,
     String? currency,
+    String? country,
     String? timezone,
     bool? isActive,
     DateTime? createdAt,
@@ -86,12 +96,14 @@ class Company extends Equatable {
     return Company(
       id: id ?? this.id,
       name: name ?? this.name,
+      businessType: businessType ?? this.businessType,
       description: description ?? this.description,
       phone: phone ?? this.phone,
       email: email ?? this.email,
       address: address ?? this.address,
       logoUrl: logoUrl ?? this.logoUrl,
       currency: currency ?? this.currency,
+      country: country ?? this.country,
       timezone: timezone ?? this.timezone,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
@@ -103,12 +115,14 @@ class Company extends Equatable {
   List<Object?> get props => [
     id,
     name,
+    businessType,
     description,
     phone,
     email,
     address,
     logoUrl,
     currency,
+    country,
     timezone,
     isActive,
     createdAt,

@@ -21,15 +21,15 @@ class ApiService {
 
   static String _determineBaseUrl() {
     if (Platform.isAndroid) {
-      // return 'http://10.0.2.2:5033/api'; // Emulator
-      return 'https://07kamrul.pythonanywhere.com/api';
+      return 'http://10.0.2.2:5033/api'; // Emulator
+      // return 'https://07kamrul.pythonanywhere.com/api';
     } else if (Platform.isIOS) {
       // return 'http://localhost:5033/api'; //dot net
       return 'http://127.0.0.1:8000/api';
     }
     // return 'http://localhost:5033/api'; //dot net
-    // return 'http://127.0.0.1:8000/api';
-    return 'https://07kamrul.pythonanywhere.com/api';
+    return 'http://127.0.0.1:8000/api';
+    // return 'https://07kamrul.pythonanywhere.com/api';
   }
 
   // Cache headers to reduce SharedPreferences calls

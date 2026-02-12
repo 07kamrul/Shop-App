@@ -5,6 +5,7 @@ import '../../company/pages/company_selection_page.dart';
 import '../../branch/pages/branch_selection_page.dart';
 import '../../dashboard/pages/dashboard_page.dart';
 import '../pages/login_page.dart';
+import 'pending_approval_screen.dart';
 
 class AuthRouter extends StatelessWidget {
   const AuthRouter({super.key});
@@ -25,6 +26,8 @@ class AuthRouter extends StatelessWidget {
           // Check authentication flow
           if (!user.hasCompany) {
             return const CompanySelectionPage();
+          } else if (!user.isApproved) {
+            return const PendingApprovalScreen();
           } else if (!user.hasBranch) {
             return const BranchSelectionPage();
           } else {
